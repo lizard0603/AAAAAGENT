@@ -7,6 +7,28 @@ export const Icon = ({ d, size = 24, color = "currentColor", fill = "none", sw =
   </svg>
 );
 
+// iOS-style status bar glyphs (signal bars + battery shell)
+export function SignalBars({ color = "currentColor" }: { color?: string }) {
+  const bars = [4, 7, 10, 13];
+  return (
+    <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
+      {bars.map((h, i) => (
+        <rect key={i} x={i * 4.6} y={12 - h} width={3.2} height={h} rx={0.8} fill={color} />
+      ))}
+    </svg>
+  );
+}
+
+export function BatteryGlyph({ color = "currentColor", level = 0.85 }: { color?: string; level?: number }) {
+  return (
+    <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+      <rect x="0.75" y="0.75" width="20.5" height="10.5" rx="2.6" stroke={color} strokeOpacity={0.5} strokeWidth={1} />
+      <rect x="2.4" y="2.4" width={17.2 * level} height="7.2" rx="1.4" fill={color} />
+      <rect x="22.2" y="4" width="1.8" height="4" rx="0.9" fill={color} fillOpacity={0.5} />
+    </svg>
+  );
+}
+
 export const P = {
   home: "M3 11l9-8 9 8M5 10v10h14V10",
   chart: "M3 3v18h18M7 15l4-5 3 3 5-7",
