@@ -24,6 +24,7 @@ function Spark({ data, alert }: { data: number[]; alert?: boolean }) {
 
 export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void }) {
   const twd = db.accounts.find(a => a.ccy === "TWD")?.balance ?? 0;
+  const configured = db.fxWatch.length > 0;
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.bg }}>
       {/* marble header */}
@@ -121,10 +122,10 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, color: opp.state !== "none" ? C.goldLt : C.ink, fontSize: 15, fontWeight: 800 }}>
             <Icon d={P.shield} size={18} color={opp.state !== "none" ? C.goldLt : C.ink} />
-            {opp.state === "advise" ? "換匯守衛：偵測到甜蜜點！" : "DAWHO 換匯守衛 · 監控中"}
+            {!configured ? "尚未設定 · 點我設定換匯守衛" : opp.state === "advise" ? "換匯守衛：偵測到甜蜜點！" : "DAWHO 換匯守衛 · 監控中"}
             {opp.state !== "none" && <span style={{ width: 8, height: 8, borderRadius: 4, background: C.green, animation: "pulse 1.6s infinite" }} />}
           </span>
-          <span style={{ color: opp.state !== "none" ? C.goldLt : C.ink, fontSize: 14, fontWeight: 700 }}>查看 ›</span>
+          <span style={{ color: opp.state !== "none" ? C.goldLt : C.ink, fontSize: 14, fontWeight: 700 }}>{configured ? "查看 ›" : "設定 ›"}</span>
         </button>
 
         {/* rate cards */}

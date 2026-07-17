@@ -71,7 +71,7 @@ export interface Opportunity {
   target?: number;
   touched: boolean;
   expired: boolean;
-  order: FxOrder;
+  order?: FxOrder;
 }
 
 // Chat message in the agent conversation.

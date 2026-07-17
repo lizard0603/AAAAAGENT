@@ -7,14 +7,19 @@ import { HomeScreen } from "./components/HomeScreen";
 import { TrendScreen } from "./components/TrendScreen";
 import { ExchangeScreen, DoneScreen } from "./components/ExchangeScreen";
 import { AgentScreen } from "./components/AgentScreen";
+import { SetupScreen } from "./components/SetupScreen";
+import type { FxOrder } from "./types/fx";
 
-type Screen = "home" | "trend" | "exchange" | "done" | "agent";
+type Screen = "home" | "trend" | "exchange" | "done" | "agent" | "setup";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
-  const db = mockDb;
+  const [fxWatch, setFxWatch] = useState<FxOrder[]>(mockDb.fxWatch);
+  const db = useMemo(() => ({ ...mockDb, fxWatch }), [fxWatch]);
   const opp = useMemo(() => detectOpportunity(db), [db]);
-  const go = (s: string) => setScreen(s as Screen);
+  // "agent" (the monitoring/chat screen) requires a configured order first.
+  const go = (s: string) => setScreen(s === "agent" && fxWatch.length === 0 ? "setup" : (s as Screen));
+  const saveOrder = (order: FxOrder) => { setFxWatch([order]); setScreen("agent"); };
 
   const TABS = [
     { id: "home", label: "首頁", d: P.home },
@@ -42,11 +47,12 @@ export default function App() {
           {screen === "exchange" && <ExchangeScreen db={db} opp={opp} go={go} />}
           {screen === "done" && <DoneScreen db={db} go={go} />}
           {screen === "agent" && <AgentScreen db={db} opp={opp} go={go} />}
+          {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} />}
         </div>
 
         <div style={S.tabBar}>
           {TABS.map((t) => {
-            const active = screen === t.id || (t.id === "home" && ["exchange","done"].includes(screen));
+            const active = screen === t.id || (t.id === "home" && ["exchange","done"].includes(screen)) || (t.id === "agent" && screen === "setup");
             if (t.center) {
               return (
                 <button key={t.id} onClick={() => go(t.id)} style={S.tabItem}>

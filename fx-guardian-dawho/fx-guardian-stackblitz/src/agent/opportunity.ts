@@ -10,6 +10,9 @@ import type { FxDatabase, Opportunity } from "../types/fx";
 
 export function detectOpportunity(db: FxDatabase): Opportunity {
   const order = db.fxWatch[0];
+  if (!order) {
+    return { rate: 0, target: undefined, touched: false, expired: false, hit: false, state: "none" };
+  }
   const rate = db.fxRates[order.target_ccy];
   const bankSell = rate.bank_sell;
 

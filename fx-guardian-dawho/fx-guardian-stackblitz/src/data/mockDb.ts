@@ -17,17 +17,7 @@ export const mockDb: FxDatabase = {
     JPY: { spot: 0.2001, bank_buy: 0.1985, bank_sell: 0.2015, day_low: 0.1998, day_high: 0.2045, ma20: 0.2038 },
     CNY: { spot: 4.7712, bank_buy: 4.75, bank_sell: 4.79, day_low: 4.76, day_high: 4.82, ma20: 4.74 },
   },
-  fxWatch: [
-    {
-      pair: "TWD→USD",
-      target_ccy: "USD",
-      amount_twd: 1000000,
-      mode: 3,
-      targetRate: 32.25,
-      window_start: "2026-07-01",
-      window_end: "2026-07-31",
-      note: "小孩下學期美國學費，想趁低點換",
-    },
-  ],
+  // No order configured yet — the customer sets one up via the setup flow.
+  fxWatch: [],
   history: [],
 };
