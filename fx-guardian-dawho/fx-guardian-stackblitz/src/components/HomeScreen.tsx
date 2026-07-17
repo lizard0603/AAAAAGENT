@@ -96,6 +96,22 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
         </div>
         <div style={{ height: 1, background: C.line, margin: "0 0 14px" }} />
 
+        {/* rate discount banner */}
+        <div style={{
+          margin: "0 18px 14px", borderRadius: 12, padding: "12px 16px",
+          background: `linear-gradient(100deg,${C.bgDeep},#241d10 70%)`,
+          border: `1px solid ${C.goldDeep}`,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, color: C.goldLt, fontSize: 14, fontWeight: 700 }}>
+            <Icon d={P.clock} size={16} color={C.goldLt} />
+            DAWHO換匯減分超優惠
+          </span>
+          <span style={{ color: C.gold, fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 2 }}>
+            查看優惠 <Icon d={P.chevR} size={14} color={C.gold} />
+          </span>
+        </div>
+
         {/* FX Guardian monitoring entry (agent woven into rate section) */}
         <button onClick={() => go("agent")} style={{
           width: "calc(100% - 36px)", margin: "0 18px 14px", border: "none", cursor: "pointer",

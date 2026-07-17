@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { C, styles as S } from "./styles/theme";
 import { mockDb } from "./data/mockDb";
 import { detectOpportunity } from "./agent/opportunity";
-import { Icon, P } from "./components/icons";
+import { Icon, P, SignalBars, BatteryGlyph } from "./components/icons";
 import { HomeScreen } from "./components/HomeScreen";
 import { TrendScreen } from "./components/TrendScreen";
 import { ExchangeScreen, DoneScreen } from "./components/ExchangeScreen";
@@ -29,8 +29,11 @@ export default function App() {
       <div style={S.phone}>
         <div style={S.statusBar}>
           <span>10:15</span>
-          <span style={{ fontSize: 12, letterSpacing: 1, color: C.textDim }}>SinoPac · DAWHO</span>
-          <span>5G ▉</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <SignalBars color={C.text} />
+            <span style={{ fontSize: 13, fontWeight: 600 }}>5G</span>
+            <BatteryGlyph color={C.text} level={0.85} />
+          </div>
         </div>
 
         <div style={S.screen}>

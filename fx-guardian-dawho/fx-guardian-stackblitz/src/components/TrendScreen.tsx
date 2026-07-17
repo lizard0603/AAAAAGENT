@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import type { FxDatabase, Opportunity } from "../types/fx";
@@ -47,6 +48,7 @@ function TrendChart({ opp }: { opp: Opportunity }) {
 export function TrendScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void }) {
   const order = db.fxWatch[0];
   const usd = db.fxRates.USD;
+  const [noticeOpen, setNoticeOpen] = useState(true);
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.lightBg }}>
       <div style={{ display: "flex", alignItems: "center", padding: "14px 18px", position: "relative" }}>
@@ -111,13 +113,35 @@ export function TrendScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity;
       </div>
       <div style={{ padding: "10px 14px 0" }}><TrendChart opp={opp} /></div>
       <div style={{ display: "flex", justifyContent: "center", gap: 20, fontSize: 13, color: C.lightDim, padding: "4px 0 0" }}>
-        <span>— 賣匯</span><span>-- 我的平均成本</span>
+        <span>— 賣匯</span><span>-- 我的平均成本 ⓘ</span>
       </div>
+
+      {/* no-history nudge */}
+      {db.history.length === 0 && (
+        <div style={{ margin: "16px 18px 0", background: "#FBF2E4", borderRadius: 12, padding: "13px 16px", textAlign: "center", color: "#8A6A2E", fontSize: 14, fontWeight: 600 }}>
+          登楞還沒換匯過！快開啟第一筆換匯吧~
+        </div>
+      )}
 
       {/* CTA row */}
       <div style={{ display: "flex", gap: 12, padding: "18px 18px 0" }}>
         <button style={{ flex: 1, border: `1px solid ${C.goldDeep}`, background: "transparent", color: C.goldDeep, borderRadius: 12, padding: "16px 0", fontSize: 17, fontWeight: 800, cursor: "pointer" }}>換匯優利定存</button>
         <button onClick={() => go("exchange")} style={{ flex: 1, border: "none", background: `linear-gradient(100deg,${C.goldDeep},${C.gold})`, color: C.ink, borderRadius: 12, padding: "16px 0", fontSize: 17, fontWeight: 800, cursor: "pointer" }}>立即買外幣</button>
+      </div>
+
+      {/* notice */}
+      <div style={{ margin: "22px 18px 0" }}>
+        <div onClick={() => setNoticeOpen(!noticeOpen)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color: C.lightInk }}>注意事項</span>
+          <span style={{ color: C.lightDim, fontSize: 18 }}>{noticeOpen ? "—" : "+"}</span>
+        </div>
+        {noticeOpen && (
+          <ul style={{ margin: "12px 0 0", paddingLeft: 18, color: "#6a6a70", fontSize: 12.5, lineHeight: 1.7 }}>
+            <li>本頁資訊僅供參考，實際成交匯率以本行牌告交易當下所議定的匯率為準（牌告匯率報價時間更新自9:00至15:30止），歷史牌告資訊為本行每營業日牌告匯率15:30的收盤價格，實際成交匯率以當下議定之匯率為準。</li>
+            <li>本項紀錄不可作為「銀行帳戶餘額」或往來憑證之文件。</li>
+            <li>本項資訊僅提供結購(臺幣換外幣)與結售(外幣換臺幣)之試算服務。</li>
+          </ul>
+        )}
       </div>
       <div style={{ height: 24 }} />
     </div>

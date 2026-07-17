@@ -12,6 +12,7 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
   const [twdAmt, setTwdAmt] = useState(agentFilled ? String(order.amount_twd) : "");
   const [agree, setAgree] = useState(false);
   const usdAmt = twdAmt ? Math.floor(Number(twdAmt) / usd.bank_sell) : 0;
+  const twdAccount = db.accounts.find(a => a.ccy === "TWD");
 
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.lightBg }}>
@@ -86,9 +87,25 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
       <div style={{ padding: "18px 18px 0", fontSize: 15, color: C.lightInk }}>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><b>兌換匯率</b><span>{usd.bank_sell}</span></div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${C.lightLine}`, marginTop: 6, paddingTop: 12 }}>
+          <b>尚餘交易時間</b><span style={{ color: C.lightDim }}>05:14:18</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
           <b>結匯性質</b><span style={{ color: C.lightDim }}>常用申報性質 ▾</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><b>交易日期</b><span>2026/07/15</span></div>
+      </div>
+
+      {/* debit account */}
+      <div style={{ padding: "16px 18px 0" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>扣款帳號</div>
+        <div style={{ border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 16, color: C.lightInk }}>{twdAccount?.label ?? "臺幣存款"}</span>
+          <span style={{ color: C.lightDim, fontSize: 16 }}>▾</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 2px 0", fontSize: 14 }}>
+          <span style={{ color: C.lightDim }}>帳戶餘額</span>
+          <span style={{ color: C.lightInk, fontWeight: 700 }}>TWD {fmt(twdAccount?.balance ?? 0)}</span>
+        </div>
       </div>
 
       {/* notice + agree */}
