@@ -8,6 +8,7 @@ import { TrendScreen } from "./components/TrendScreen";
 import { ExchangeScreen, DoneScreen } from "./components/ExchangeScreen";
 import { AgentScreen } from "./components/AgentScreen";
 import { SetupScreen } from "./components/SetupScreen";
+import { DevScenarioPanel } from "./components/DevScenarioPanel";
 import type { FxOrder } from "./types/fx";
 
 type Screen = "home" | "trend" | "exchange" | "done" | "agent" | "setup";
@@ -15,11 +16,32 @@ type Screen = "home" | "trend" | "exchange" | "done" | "agent" | "setup";
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [fxWatch, setFxWatch] = useState<FxOrder[]>(mockDb.fxWatch);
+  const [activeIdx, setActiveIdx] = useState(0);
   const db = useMemo(() => ({ ...mockDb, fxWatch }), [fxWatch]);
-  const opp = useMemo(() => detectOpportunity(db), [db]);
+  // Per-order opportunity states — the customer can have more than one order watched at once.
+  const opps = useMemo(() => fxWatch.map(order => detectOpportunity({ ...mockDb, fxWatch: [order] })), [fxWatch]);
+  // "Primary" opportunity for Home/Trend/Exchange screens: the most urgent order, else the first.
+  const opp = useMemo(
+    () => opps.find(o => o.state === "execute") ?? opps.find(o => o.state === "advise") ?? opps[0] ?? detectOpportunity({ ...mockDb, fxWatch: [] }),
+    [opps]
+  );
+  const clampedIdx = Math.min(activeIdx, Math.max(fxWatch.length - 1, 0));
+  const activeDb = useMemo(() => ({ ...mockDb, fxWatch: fxWatch[clampedIdx] ? [fxWatch[clampedIdx]] : [] }), [fxWatch, clampedIdx]);
+  const activeOpp = opps[clampedIdx] ?? detectOpportunity({ ...mockDb, fxWatch: [] });
   // "agent" (the monitoring/chat screen) requires a configured order first.
   const go = (s: string) => setScreen(s === "agent" && fxWatch.length === 0 ? "setup" : (s as Screen));
-  const saveOrder = (order: FxOrder) => { setFxWatch([order]); setScreen("agent"); };
+  const saveOrder = (order: FxOrder) => {
+    const next = [...fxWatch, order];
+    setFxWatch(next);
+    setActiveIdx(next.length - 1);
+    setScreen("agent");
+  };
+  const cancelOrder = (idx: number) => {
+    const next = fxWatch.filter((_, i) => i !== idx);
+    setFxWatch(next);
+    setActiveIdx(0);
+    if (next.length === 0) setScreen("home");
+  };
 
   const TABS = [
     { id: "home", label: "首頁", d: P.home },
@@ -31,50 +53,69 @@ export default function App() {
 
   return (
     <div style={S.viewport}>
-      <div style={S.phone}>
-        <div style={S.statusBar}>
-          <span>10:15</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <SignalBars color={C.text} />
-            <span style={{ fontSize: 13, fontWeight: 600 }}>5G</span>
-            <BatteryGlyph color={C.text} level={0.85} />
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        <div style={S.phone}>
+          <div style={S.statusBar}>
+            <span>10:15</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <SignalBars color={C.text} />
+              <span style={{ fontSize: 13, fontWeight: 600 }}>5G</span>
+              <BatteryGlyph color={C.text} level={0.85} />
+            </div>
+          </div>
+
+          <div style={S.screen}>
+            {screen === "home" && <HomeScreen db={db} opp={opp} go={go} />}
+            {screen === "trend" && <TrendScreen db={db} opp={opp} go={go} />}
+            {screen === "exchange" && <ExchangeScreen db={db} opp={opp} go={go} />}
+            {screen === "done" && <DoneScreen db={db} go={go} />}
+            {screen === "agent" && (
+              <AgentScreen
+                db={activeDb}
+                opp={activeOpp}
+                go={go}
+                orders={fxWatch}
+                activeIdx={clampedIdx}
+                onSwitchOrder={setActiveIdx}
+                onCancelOrder={() => cancelOrder(clampedIdx)}
+                onAddAnother={() => go("setup")}
+              />
+            )}
+            {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} />}
+          </div>
+
+          <div style={S.tabBar}>
+            {TABS.map((t) => {
+              const active = screen === t.id || (t.id === "home" && ["exchange","done"].includes(screen)) || (t.id === "agent" && screen === "setup");
+              if (t.center) {
+                return (
+                  <button key={t.id} onClick={() => go(t.id)} style={S.tabItem}>
+                    <div style={{ width: 46, height: 46, borderRadius: 23, marginTop: -18,
+                      background: `linear-gradient(135deg,${C.goldDeep},${C.goldLt})`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: opp.state !== "none" ? `0 0 0 3px rgba(74,222,128,.4)` : "0 4px 12px rgba(0,0,0,.4)", position: "relative" }}>
+                      <Icon d={P.shield} size={22} color={C.ink} />
+                      {opp.state !== "none" && <span style={{ position: "absolute", top: -2, right: -2, width: 12, height: 12, borderRadius: 6, background: C.green, border: `2px solid ${C.bgDeep}` }} />}
+                    </div>
+                    <span style={{ ...S.tabLabel, color: active ? C.goldLt : C.textDim, marginTop: 2 }}>{t.label}</span>
+                  </button>
+                );
+              }
+              return (
+                <button key={t.id} onClick={() => go(t.id === "trend2" ? "trend" : t.id)} style={S.tabItem}>
+                  <Icon d={t.d} size={22} color={active ? C.goldLt : C.textDim} />
+                  <span style={{ ...S.tabLabel, color: active ? C.goldLt : C.textDim }}>{t.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div style={S.screen}>
-          {screen === "home" && <HomeScreen db={db} opp={opp} go={go} />}
-          {screen === "trend" && <TrendScreen db={db} opp={opp} go={go} />}
-          {screen === "exchange" && <ExchangeScreen db={db} opp={opp} go={go} />}
-          {screen === "done" && <DoneScreen db={db} go={go} />}
-          {screen === "agent" && <AgentScreen db={db} opp={opp} go={go} />}
-          {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} />}
-        </div>
-
-        <div style={S.tabBar}>
-          {TABS.map((t) => {
-            const active = screen === t.id || (t.id === "home" && ["exchange","done"].includes(screen)) || (t.id === "agent" && screen === "setup");
-            if (t.center) {
-              return (
-                <button key={t.id} onClick={() => go(t.id)} style={S.tabItem}>
-                  <div style={{ width: 46, height: 46, borderRadius: 23, marginTop: -18,
-                    background: `linear-gradient(135deg,${C.goldDeep},${C.goldLt})`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: opp.state !== "none" ? `0 0 0 3px rgba(74,222,128,.4)` : "0 4px 12px rgba(0,0,0,.4)", position: "relative" }}>
-                    <Icon d={P.shield} size={22} color={C.ink} />
-                    {opp.state !== "none" && <span style={{ position: "absolute", top: -2, right: -2, width: 12, height: 12, borderRadius: 6, background: C.green, border: `2px solid ${C.bgDeep}` }} />}
-                  </div>
-                  <span style={{ ...S.tabLabel, color: active ? C.goldLt : C.textDim, marginTop: 2 }}>{t.label}</span>
-                </button>
-              );
-            }
-            return (
-              <button key={t.id} onClick={() => go(t.id === "trend2" ? "trend" : t.id)} style={S.tabItem}>
-                <Icon d={t.d} size={22} color={active ? C.goldLt : C.textDim} />
-                <span style={{ ...S.tabLabel, color: active ? C.goldLt : C.textDim }}>{t.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <DevScenarioPanel
+          orderCount={fxWatch.length}
+          onApply={saveOrder}
+          onReset={() => { setFxWatch([]); setActiveIdx(0); setScreen("home"); }}
+        />
       </div>
       <p style={S.footnote}>原型展示 · DAWHO 換匯守衛 POC · 免金鑰示範模式</p>
     </div>

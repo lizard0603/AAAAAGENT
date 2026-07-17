@@ -2,11 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import { askFxGuardian } from "../agent/fxGuardian";
-import type { FxDatabase, Opportunity, ChatMessage } from "../types/fx";
+import type { FxDatabase, FxOrder, Opportunity, ChatMessage } from "../types/fx";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
+const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "人民幣" };
 
-export function AgentScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void }) {
+export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onCancelOrder, onAddAnother }: {
+  db: FxDatabase; opp: Opportunity; go: (s: string) => void;
+  orders: FxOrder[]; activeIdx: number;
+  onSwitchOrder: (i: number) => void; onCancelOrder: () => void; onAddAnother: () => void;
+}) {
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,6 +20,8 @@ export function AgentScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity;
   const order = db.fxWatch[0];
 
   useEffect(() => {
+    setMsgs([]);
+    setDecided(null);
     (async () => {
       setLoading(true);
       const opener = opp.state === "advise"
@@ -26,7 +33,8 @@ export function AgentScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity;
       catch (e: any) { setMsgs([{ role: "agent", text: `（連線異常：${e?.message ?? e}）` }]); }
       setLoading(false);
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeIdx]);
   useEffect(() => { ref.current?.scrollTo(0, ref.current.scrollHeight); }, [msgs, loading]);
 
   async function send(t: string) {
@@ -53,6 +61,18 @@ export function AgentScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity;
         </div>
       </div>
 
+      {orders.length > 1 && (
+        <div style={{ display: "flex", gap: 8, padding: "12px 18px 0", overflowX: "auto" }}>
+          {orders.map((o, i) => (
+            <button key={i} onClick={() => onSwitchOrder(i)} style={{
+              flexShrink: 0, border: `1px solid ${i === activeIdx ? C.goldDeep : C.line}`, borderRadius: 20,
+              padding: "6px 14px", background: i === activeIdx ? "rgba(201,161,90,.18)" : "transparent",
+              color: i === activeIdx ? C.goldLt : C.textDim, fontSize: 12, fontWeight: 700, cursor: "pointer",
+            }}>{CCY_LABEL[o.target_ccy] ?? o.target_ccy} · {fmt(o.amount_twd)} · 模式{o.mode}</button>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 10, padding: "12px 18px 0" }}>
         {[["美元 買入", db.fxRates.USD.bank_sell, `目標 ${order.targetRate}`, opp.state !== "none"],
           ["日圓 買入", db.fxRates.JPY.bank_sell, `20日均 ${db.fxRates.JPY.ma20}`, false]].map(([a, b, c, hl], i) => (
@@ -62,6 +82,17 @@ export function AgentScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity;
             <div style={{ fontSize: 10, color: C.textDim }}>{c as string}</div>
           </div>
         ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, padding: "10px 18px 0" }}>
+        <button onClick={onCancelOrder} style={{
+          flex: 1, border: `1px solid ${C.line}`, background: "transparent", color: C.textDim,
+          borderRadius: 10, padding: "9px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+        }}>取消此委託</button>
+        <button onClick={onAddAnother} style={{
+          flex: 1, border: `1px solid ${C.goldDeep}`, background: "transparent", color: C.goldLt,
+          borderRadius: 10, padding: "9px 0", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+        }}>+ 再設定一筆</button>
       </div>
 
       <div ref={ref} style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, padding: "16px 18px" }}>

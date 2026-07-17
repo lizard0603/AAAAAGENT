@@ -14,34 +14,6 @@ const MODE_HINT: Record<1 | 2 | 3, string> = {
   3: "同時填了目標匯率與時間區間：達門檻但區間未到期時，AI 只會示警建議，是否鎖定由您決定；到期保證完成。",
 };
 
-// Preset scenarios so you can preview every UI state without hand-tuning
-// numbers against today's mock rates. Tuned against mockDb: USD bank_sell
-// 32.211 / ma20 32.02, JPY bank_sell 0.2015 / ma20 0.2038, today 2026-07-15.
-type ScenarioState = "none" | "advise" | "execute";
-const STATE_BADGE: Record<ScenarioState, { label: string; bg: string; fg: string }> = {
-  none: { label: "監控中", bg: "#eceae4", fg: "#6a6a70" },
-  advise: { label: "示警建議", bg: "#fbf2df", fg: "#a8843f" },
-  execute: { label: "授權執行", bg: "#eafaf0", fg: "#1a7a45" },
-};
-const SCENARIOS: { group: string; label: string; state: ScenarioState; order: FxOrder }[] = [
-  { group: "模式一 · 觸價執行", label: "尚未達門檻", state: "none",
-    order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 1, targetRate: 32.0 } },
-  { group: "模式一 · 觸價執行", label: "已達門檻，授權即執行", state: "execute",
-    order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 1, targetRate: 32.25 } },
-  { group: "模式二 · 區間找低點", label: "AI 找到相對低點，建議換匯", state: "advise",
-    order: { pair: "TWD→JPY", target_ccy: "JPY", amount_twd: 1000000, mode: 2, window_start: "2026-07-01", window_end: "2026-07-31" } },
-  { group: "模式二 · 區間找低點", label: "區間到期，保底執行", state: "execute",
-    order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 2, window_start: "2026-07-01", window_end: "2026-07-10" } },
-  { group: "模式三 · 門檻＋區間", label: "未觸價、區間未到期", state: "none",
-    order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 3, targetRate: 32.0, window_start: "2026-07-01", window_end: "2026-07-31" } },
-  { group: "模式三 · 門檻＋區間", label: "已觸價但區間未到期，示警建議", state: "advise",
-    order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 3, targetRate: 32.25, window_start: "2026-07-01", window_end: "2026-07-31" } },
-  { group: "模式三 · 門檻＋區間", label: "已觸價且區間到期，執行", state: "execute",
-    order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 3, targetRate: 32.25, window_start: "2026-07-01", window_end: "2026-07-10" } },
-  { group: "模式三 · 門檻＋區間", label: "未觸價但區間到期，保底執行", state: "execute",
-    order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 3, targetRate: 32.0, window_start: "2026-07-01", window_end: "2026-07-10" } },
-];
-
 export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order: FxOrder) => void; go: (s: string) => void }) {
   const ccyOptions = Object.keys(db.fxRates);
   const [ccy, setCcy] = useState<CurrencyCode>(ccyOptions[0] ?? "USD");
@@ -90,42 +62,8 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
         </div>
       </div>
 
-      {/* quick preview scenarios */}
-      <div style={{ padding: "20px 18px 0" }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 4 }}>快速預覽情境</div>
-        <div style={{ fontSize: 12.5, color: C.lightDim, marginBottom: 12 }}>直接套用預先設好的條件，馬上看到對應畫面（Demo 用）</div>
-        {Object.entries(
-          SCENARIOS.reduce<Record<string, typeof SCENARIOS>>((acc, s) => {
-            (acc[s.group] ??= []).push(s);
-            return acc;
-          }, {})
-        ).map(([group, items]) => (
-          <div key={group} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: C.goldDeep, marginBottom: 6 }}>{group}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {items.map((s, i) => {
-                const badge = STATE_BADGE[s.state];
-                return (
-                  <button key={i} onClick={() => onSave(s.order)} style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-                    border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "12px 14px",
-                    background: "#fff", cursor: "pointer", textAlign: "left",
-                  }}>
-                    <span style={{ fontSize: 13.5, color: C.lightInk, fontWeight: 600 }}>{s.label}</span>
-                    <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 800, borderRadius: 8, padding: "3px 9px", background: badge.bg, color: badge.fg }}>{badge.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ margin: "8px 18px 0", height: 1, background: C.lightLine }} />
-      <div style={{ padding: "18px 18px 0", fontSize: 14, color: C.lightDim, fontWeight: 600 }}>或自己手動設定</div>
-
       {/* currency */}
-      <div style={{ padding: "10px 18px 0" }}>
+      <div style={{ padding: "18px 18px 0" }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>要換的幣別</div>
         <div style={{ display: "flex", gap: 10 }}>
           {ccyOptions.map(c => (
