@@ -18,6 +18,11 @@ export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onC
   const [decided, setDecided] = useState<null | "lock" | "wait">(null);
   const ref = useRef<HTMLDivElement>(null);
   const order = db.fxWatch[0];
+  const ccyLabel = CCY_LABEL[order.target_ccy] ?? order.target_ccy;
+  const primaryRate = db.fxRates[order.target_ccy];
+  const refCcy = order.target_ccy === "USD" ? "JPY" : "USD";
+  const refRate = db.fxRates[refCcy];
+  const primarySub = order.targetRate != null ? `目標 ${order.targetRate}` : order.window_end ? `區間至 ${order.window_end}` : `20日均 ${primaryRate.ma20}`;
 
   useEffect(() => {
     setMsgs([]);
@@ -25,11 +30,11 @@ export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onC
     (async () => {
       setLoading(true);
       const opener = opp.state === "advise"
-        ? "（系統：mode 3，已觸門檻但仍在區間內。只示警＋建議，把是否鎖定的決定權交給客戶，不可自動換。給換匯試算與觀望利弊。）"
+        ? "（系統：已觸及客戶設定的條件但仍在觀察區間內。只示警＋建議，把是否鎖定的決定權交給客戶，不可自動換。給換匯試算與觀望利弊。）"
         : opp.state === "execute"
         ? "（系統：已達執行條件，說明可授權即執行並給試算。）"
-        : "（系統：客戶打開換匯守衛，簡短彙報美元相對門檻的狀況與差距。）";
-      try { setMsgs([{ role: "agent", text: await askFxGuardian(db, opener) }]); }
+        : "（系統：客戶打開換匯守衛，簡短彙報目前匯率相對條件的狀況與差距。）";
+      try { setMsgs([{ role: "agent", text: await askFxGuardian(db, opp, opener) }]); }
       catch (e: any) { setMsgs([{ role: "agent", text: `（連線異常：${e?.message ?? e}）` }]); }
       setLoading(false);
     })();
@@ -41,7 +46,7 @@ export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onC
     if (!t.trim()) return;
     const next: ChatMessage[] = [...msgs, { role: "user", text: t }];
     setMsgs(next); setInput(""); setLoading(true);
-    try { setMsgs([...next, { role: "agent", text: await askFxGuardian(db, t, msgs) }]); }
+    try { setMsgs([...next, { role: "agent", text: await askFxGuardian(db, opp, t, msgs) }]); }
     catch (e: any) { setMsgs([...next, { role: "agent", text: `（連線異常：${e?.message ?? e}）` }]); }
     setLoading(false);
   }
@@ -74,8 +79,8 @@ export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onC
       )}
 
       <div style={{ display: "flex", gap: 10, padding: "12px 18px 0" }}>
-        {[["美元 買入", db.fxRates.USD.bank_sell, `目標 ${order.targetRate}`, opp.state !== "none"],
-          ["日圓 買入", db.fxRates.JPY.bank_sell, `20日均 ${db.fxRates.JPY.ma20}`, false]].map(([a, b, c, hl], i) => (
+        {[[`${ccyLabel} 買入`, primaryRate.bank_sell, primarySub, opp.state !== "none"],
+          [`${CCY_LABEL[refCcy] ?? refCcy} 買入`, refRate.bank_sell, `20日均 ${refRate.ma20}`, false]].map(([a, b, c, hl], i) => (
           <div key={i} style={{ flex: 1, background: C.bgDeep, borderRadius: 12, padding: "10px 14px" }}>
             <div style={{ fontSize: 11, color: C.textDim }}>{a as string}</div>
             <div style={{ fontSize: 19, fontWeight: 800, color: hl ? C.green : C.goldLt }}>{b as any}</div>
@@ -110,7 +115,9 @@ export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onC
         {opp.state === "advise" && !decided && !loading && msgs.length > 0 && (
           <div style={{ background: "rgba(201,161,90,.1)", border: `1px solid ${C.gold}`, borderRadius: 14, padding: "14px 16px" }}>
             <div style={{ display: "inline-block", fontSize: 10.5, fontWeight: 800, color: C.ink, background: C.gold, borderRadius: 8, padding: "3px 9px", marginBottom: 9 }}>需您決定 · AI 僅提供建議</div>
-            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, marginBottom: 12 }}>已達門檻 {order.targetRate}（目前 {db.fxRates.USD.bank_sell}），仍在您的區間內。是否現在鎖定，或再觀望？</div>
+            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, marginBottom: 12 }}>
+              {order.targetRate != null ? `已達門檻 ${order.targetRate}` : `已低於 20 日均價 ${primaryRate.ma20}`}（目前 {primaryRate.bank_sell}），仍在您的區間內。是否現在鎖定，或再觀望？
+            </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => { setDecided("lock"); go("exchange"); }} style={{ flex: 1, padding: "11px 8px", borderRadius: 11, border: "none", background: C.gold, color: C.ink, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>現在鎖定換匯</button>
               <button onClick={() => setDecided("wait")} style={{ flex: 1, padding: "11px 8px", borderRadius: 11, background: "transparent", color: C.gold, border: `1px solid ${C.goldDeep}`, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>再觀望</button>

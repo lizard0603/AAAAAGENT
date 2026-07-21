@@ -1,4 +1,4 @@
-import type { FxDatabase, ChatMessage } from "../types/fx";
+import type { FxDatabase, ChatMessage, Opportunity } from "../types/fx";
 import { mockReplyFromDb } from "./mockReply";
 
 // ============================================================
@@ -60,13 +60,14 @@ ${JSON.stringify(context, null, 2)}
 
 export async function askFxGuardian(
   db: FxDatabase,
+  opp: Opportunity,
   userMessage: string,
   history: ChatMessage[] = []
 ): Promise<string> {
   // ---- In-browser mock mode (StackBlitz / no backend) ----
   if (!USE_BACKEND) {
     await wait(650);
-    return mockReplyFromDb(db, userMessage, history);
+    return mockReplyFromDb(db, opp, userMessage, history);
   }
 
   // ---- Backend mode (Express proxy → Claude API) ----
