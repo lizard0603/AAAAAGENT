@@ -17,7 +17,8 @@ import type { CurrencyCode } from "../types/fx";
 // ============================================================
 
 export interface FxTrendSummary {
-  indexName: string; // 永豐分析用的指數名稱（如「美元指數」）
+  indexName: string; // 永豐分析用的完整指數名稱（含幣別說明，給系統提示用）
+  pairLabel: string; // 對話中引用時用的簡短貨幣對名稱（如「美元兌日圓」）
   asOf: string; // 資料日期
   latestClose: number;
   bankViewpoint: string; // 永豐 Orbit.AI 給的評等（中性／相對正向…）
@@ -25,12 +26,14 @@ export interface FxTrendSummary {
   structure: string; // 均線 / 高低點結構摘要
   resistance: string;
   support: string;
+  shortLevels: string; // 支撐/壓力的精簡版（給對話簡短帶入用）
   outlook: string; // 情境展望（守住/跌破關鍵價位分別代表什麼）
 }
 
 export const fxTrends: Partial<Record<CurrencyCode, FxTrendSummary>> = {
   USD: {
     indexName: "美元指數",
+    pairLabel: "美元指數",
     asOf: "2026-07-21",
     latestClose: 100.6,
     bankViewpoint: "中性（近期由偏鴿上調）",
@@ -39,11 +42,13 @@ export const fxTrends: Partial<Record<CurrencyCode, FxTrendSummary>> = {
       "現價高於 MA60(99.74)、MA120(99.16)，中期偏多排列；但略低於 MA20(101.06)，短線處於高檔區間整理。",
     resistance: "101.0–101.2 第一關卡；101.4–101.6 為近兩個月高檔核心壓力區。",
     support: "100.3–100.4 短線上升趨勢線；99.7–99.8 為 MA60 附近關鍵支撐。",
+    shortLevels: "支撐 99.7–99.8、壓力 101.0–101.2",
     outlook:
       "守住 100.3 並重返 101 之上 → 短線整理結束、中期偏多延續；若跌破 99.7–99.8，短中期動能轉弱訊號浮現。",
   },
   JPY: {
     indexName: "美元兌日圓指數（USD/JPY，國際匯率參考，非台幣賣匯）",
+    pairLabel: "美元兌日圓",
     asOf: "2026-07-21",
     latestClose: 162.51,
     bankViewpoint: "中性",
@@ -52,11 +57,13 @@ export const fxTrends: Partial<Record<CurrencyCode, FxTrendSummary>> = {
       "現價 162.51 > MA20(162.05) > MA60(160.10) > MA120(158.89)，均線多頭排列，日圓對美元持續走弱、尚無反轉訊號。",
     resistance: "162.8–163.0 短線壓力區。",
     support: "161.8–162.0 短線支撐；160.0–160.5（MA60 附近）與 158.8–159.0（MA120 附近）為中長期關鍵點位。",
+    shortLevels: "支撐 161.8、壓力 162.8–163.0",
     outlook:
       "守住 161.8 以上，日圓維持弱勢盤整；若跌破 161.8 為短線走強第一訊號，回落至 160 附近才代表中期轉強。",
   },
   CNY: {
     indexName: "美元兌人民幣指數（USD/CNY，國際匯率參考，非台幣賣匯）",
+    pairLabel: "美元兌人民幣",
     asOf: "2026-07-21",
     latestClose: 6.7671,
     bankViewpoint: "相對正向（人民幣偏強）",
@@ -65,6 +72,7 @@ export const fxTrends: Partial<Record<CurrencyCode, FxTrendSummary>> = {
       "現價 6.7671 < MA20(6.7875) < MA120(6.8361)，人民幣對美元中期由弱轉強，短線在 6.77–6.80 區間整理，走強動能略見趨緩。",
     resistance: "6.78–6.80 短線壓力（人民幣走弱訊號）；6.82–6.84 中長期壓力。",
     support: "6.75–6.76 短線支撐，為人民幣走強防線。",
+    shortLevels: "支撐 6.75–6.76、壓力 6.78–6.80",
     outlook:
       "跌破 6.75 → 人民幣續強格局可望延伸；重新站上 6.80 → 動能減弱，轉入橫盤甚至走弱。",
   },
@@ -79,4 +87,18 @@ export function formatTrendReference(ccy: CurrencyCode): string {
     `壓力：${t.resistance}｜支撐：${t.support}`,
     `展望：${t.outlook}`,
   ].join("\n");
+}
+
+// 對話中簡短帶入用：標明是哪個貨幣對＋支撐壓力價位（精簡、每次都一樣具體但不冗長）。
+export function trendShortNote(ccy: CurrencyCode): string {
+  const t = fxTrends[ccy];
+  if (!t) return "";
+  return `${t.pairLabel}：${t.shortLevels}`;
+}
+
+// 對話中被追問「為什麼」時用：標明貨幣對＋完整情境展望，作為判斷理由。
+export function trendOutlookNote(ccy: CurrencyCode): string {
+  const t = fxTrends[ccy];
+  if (!t) return "";
+  return `${t.pairLabel}走勢：${t.outlook}`;
 }

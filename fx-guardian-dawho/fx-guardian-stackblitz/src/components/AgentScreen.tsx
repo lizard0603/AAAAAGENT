@@ -6,6 +6,7 @@ import type { FxDatabase, FxOrder, Opportunity, ChatMessage } from "../types/fx"
 
 const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
 const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "人民幣" };
+const CCY_SYMBOL: Record<string, string> = { USD: "US$", JPY: "¥", CNY: "¥" };
 
 export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onCancelOrder, onAddAnother }: {
   db: FxDatabase; opp: Opportunity; go: (s: string) => void;
@@ -15,14 +16,16 @@ export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onC
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [decided, setDecided] = useState<null | "lock" | "wait">(null);
+  const [decided, setDecided] = useState<null | "lock" | "wait" | "execute" | "hold">(null);
   const ref = useRef<HTMLDivElement>(null);
   const order = db.fxWatch[0];
   const ccyLabel = CCY_LABEL[order.target_ccy] ?? order.target_ccy;
+  const ccySym = CCY_SYMBOL[order.target_ccy] ?? order.target_ccy;
   const primaryRate = db.fxRates[order.target_ccy];
   const refCcy = order.target_ccy === "USD" ? "JPY" : "USD";
   const refRate = db.fxRates[refCcy];
   const primarySub = order.targetRate != null ? `目標 ${order.targetRate}` : order.window_end ? `區間至 ${order.window_end}` : `20日均 ${primaryRate.ma20}`;
+  const convertedAmount = Math.floor(order.amount_twd / primaryRate.bank_sell);
 
   useEffect(() => {
     setMsgs([]);
@@ -125,6 +128,20 @@ export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onC
           </div>
         )}
         {decided === "wait" && <div style={{ background: C.bgDeep, border: `1px solid ${C.line}`, borderRadius: 14, padding: "13px 16px", color: C.textDim, fontSize: 12.5, lineHeight: 1.5 }}>◷ 已為您繼續監控。到期日 {order.window_end} 前若未再指示，將以當日匯率保證完成。</div>}
+
+        {opp.state === "execute" && !decided && !loading && msgs.length > 0 && (
+          <div style={{ background: "rgba(34,168,90,.12)", border: `1px solid ${C.green}`, borderRadius: 14, padding: "14px 16px" }}>
+            <div style={{ display: "inline-block", fontSize: 10.5, fontWeight: 800, color: "#fff", background: C.green, borderRadius: 8, padding: "3px 9px", marginBottom: 9 }}>已達執行條件 · 可一鍵授權</div>
+            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.55, marginBottom: 12 }}>
+              {ccyLabel}買入價 {primaryRate.bank_sell}，NT$ {fmt(order.amount_twd)} 約可換得 {ccySym} {fmt(convertedAmount)}。確認後立即送出換匯。
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => { setDecided("execute"); go("exchange"); }} style={{ flex: 1, padding: "11px 8px", borderRadius: 11, border: "none", background: C.green, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>一鍵授權並執行</button>
+              <button onClick={() => setDecided("hold")} style={{ flex: 1, padding: "11px 8px", borderRadius: 11, background: "transparent", color: C.green, border: `1px solid ${C.green}`, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>先不要</button>
+            </div>
+          </div>
+        )}
+        {decided === "hold" && <div style={{ background: C.bgDeep, border: `1px solid ${C.line}`, borderRadius: 14, padding: "13px 16px", color: C.textDim, fontSize: 12.5, lineHeight: 1.5 }}>已為您保留、尚未送出。隨時可回來點「一鍵授權並執行」完成這筆換匯。</div>}
       </div>
 
       <div style={{ padding: "10px 18px 14px" }}>
