@@ -1,5 +1,6 @@
 import type { FxDatabase, Opportunity, ChatMessage } from "../types/fx";
 import { fmt } from "../data/format";
+import { fxTrends } from "../data/fxTrends";
 
 // ============================================================
 //  In-browser mock responder (no backend, no API key)
@@ -37,16 +38,21 @@ export function mockReplyFromDb(
   const converted = Math.floor(amount / bankSell);
   const isOpener = userMessage.includes("（系統：");
 
+  // Orbit.AI 外匯趨勢參考（永豐 sinopacBT/webevents/orbitai）：對美元的國際指數
+  // 走勢判讀，不等於本行台幣賣匯，僅作「可能更低/更高」的市場脈絡佐證。
+  const trend = fxTrends[order.target_ccy];
+  const trendHint = trend ? `，參考市場趨勢分析：${trend.outlook}` : "";
+
   // ---- advise: touched/relative-low but window open → client decides ----
   if (opp.state === "advise") {
     const reasonText = target != null ? `已達您設定的門檻 ${target}` : `已低於 20 日均價 ${rate.ma20}，是相對低點`;
     if (isOpener) {
       return `${db.user.name}午安，${ccy}買入價已來到 ${bankSell}，${reasonText}。以 NT$ ${fmt(amount)} 試算約可換得 ${sym} ${fmt(
         converted
-      )}。不過目前仍在您的換匯區間內（至 ${order.window_end}），是否要現在鎖定、或再觀望一下，由您決定——需要我幫您鎖定嗎？`;
+      )}。不過目前仍在您的換匯區間內（至 ${order.window_end}）${trendHint}，是否要現在鎖定、或再觀望一下，由您決定——需要我幫您鎖定嗎？`;
     }
     if (userMessage.includes("等") || userMessage.includes("為什麼")) {
-      return `我的角色是提醒與試算，最終由您拍板。${reasonText}，短線仍有機會再低，但也可能回升。若您重視「確定換到」可現在鎖定；想再等更低點，我會持續盯著，到期 ${order.window_end} 前一定為您完成。`;
+      return `我的角色是提醒與試算，最終由您拍板。${reasonText}，短線仍有機會再低，但也可能回升${trendHint}。若您重視「確定換到」可現在鎖定；想再等更低點，我會持續盯著，到期 ${order.window_end} 前一定為您完成。`;
     }
     if (userMessage.includes("試算") || userMessage.includes("100")) {
       return `以目前買入價 ${bankSell} 計算，NT$ ${fmt(amount)} 約可換得 ${sym} ${fmt(converted)}。${reasonText}，是否要我為您鎖定此報價？`;
@@ -65,7 +71,7 @@ export function mockReplyFromDb(
   // ---- monitoring ----
   if (target != null) {
     const gap = (bankSell - target).toFixed(2);
-    return `目前${ccy}買入價 ${bankSell}，距離您的目標 ${target} 還差約 ${gap} 元。我會持續監控，一旦觸及門檻立即通知您。`;
+    return `目前${ccy}買入價 ${bankSell}，距離您的目標 ${target} 還差約 ${gap} 元${trendHint}。我會持續監控，一旦觸及門檻立即通知您。`;
   }
-  return `目前${ccy}買入價 ${bankSell}，20 日均價 ${rate.ma20}，暫時還沒看到相對低點。我會持續監控，一旦出現機會立即通知您。`;
+  return `目前${ccy}買入價 ${bankSell}，20 日均價 ${rate.ma20}，暫時還沒看到相對低點${trendHint}。我會持續監控，一旦出現機會立即通知您。`;
 }

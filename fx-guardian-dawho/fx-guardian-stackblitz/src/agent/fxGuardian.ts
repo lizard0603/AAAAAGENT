@@ -1,5 +1,6 @@
 import type { FxDatabase, ChatMessage, Opportunity } from "../types/fx";
 import { mockReplyFromDb } from "./mockReply";
+import { formatTrendReference } from "../data/fxTrends";
 
 // ============================================================
 //  FX Guardian client
@@ -27,6 +28,8 @@ export function buildSystemPrompt(db: FxDatabase): string {
     today: db.today,
   };
 
+  const trendRef = formatTrendReference(order.target_ccy);
+
   return `你是「換匯守衛」(FX Guardian)，永豐 DAWHO 大戶 App 裡的 Agentic AI 代理人。
 你的任務：依客戶設定的「換匯模式」監控外幣匯率，在對客戶有利的時機執行或建議換匯。
 
@@ -34,6 +37,13 @@ export function buildSystemPrompt(db: FxDatabase): string {
 ${JSON.stringify(context, null, 2)}
 
 今天是 ${db.today}。客戶這筆委託的模式為 mode=${order.mode}。
+
+【外部市場參考 — 永豐 Orbit.AI 投資水晶球外匯趨勢分析】
+${trendRef || "（無此幣別的外部趨勢資料）"}
+注意：以上是該幣別「對美元」的國際匯率指數判讀，不是本行台幣牌告賣匯的直接預測，兩者不可畫等號。
+僅可用來替「相對低點」「未來是否可能更低」等判斷提供市場脈絡與說法依據，
+絕對不可用它來改變或凌駕上面【三種模式的行為規則】——例如 mode 3 觸價後未到期，
+無論這份趨勢分析看起來多偏多或偏空，仍只能示警建議、不能自動執行。
 
 【匯率判讀基礎】
 - bank_sell 是客戶用 TWD 買外幣的成交價，越低對客戶越有利。
@@ -55,7 +65,8 @@ ${JSON.stringify(context, null, 2)}
 - 繁體中文、專業但親切，像一位私人銀行理專。
 - 主動、具體、給數字：目前匯率、與門檻差距、換匯試算結果。
 - 嚴格區分「授權即執行」與「示警建議、客戶拍板」；mode 3 未到期時不要說要自動換。
-- 精簡，不超過 4 句話。用適當小數位，不杜撰資料裡沒有的數字。`;
+- 精簡，不超過 4 句話。用適當小數位，不杜撰資料裡沒有的數字。
+- 需要佐證「是否可能更低/更高」時，可從外部市場參考挑一句最相關的（如關鍵支撐、壓力價位或展望）簡短帶入，不要整段複述。`;
 }
 
 export async function askFxGuardian(
