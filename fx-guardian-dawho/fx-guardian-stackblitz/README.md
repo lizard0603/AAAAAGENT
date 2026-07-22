@@ -57,7 +57,13 @@ Demo 預設 `mode: 3` 且落在 **advise（示警建議）** 狀態。要看其�
 對美元、日圓、人民幣的外匯趨勢分析（收盤價、均線結構、支撐壓力區、情境展望）。
 
 - 資料整理在 **`src/data/fxTrends.ts`**（`fxTrends` + `formatTrendReference()`），目前是人工擷取的某時間點快照，非即時串接。
-- 重新抓取最新內容：`node scripts/fetch-fx-trends.mjs`，印出後手動回填進 `fxTrends.ts` 並更新 `asOf`。
+  這支永豐的分析 API 只給瀏覽器同源呼叫用，沒有開放給第三方網站，就算 app 部署上線也沒辦法讓它在使用者瀏覽器裡自動即時更新
+  （呼叫會在 CORS 預檢階段被擋下來）；要做到 app 自動更新，得另外接一個後端幫忙代打這支 API。
+- **更新快照**（永豐網頁內容有變動、或想拿當下最新資料時）：`npm run refresh-trends`
+  （等同 `node scripts/fetch-fx-trends.mjs`）會印出美元／日圓／人民幣目前的完整分析內容，
+  再人工讀過摘要、回填進 `fxTrends.ts` 對應欄位並更新 `asOf`。這段摘要是自由格式的中文長文，
+  沒有穩定好解析的欄位可以自動抓，所以刻意設計成「印出來、人工（或請 Claude）讀完寫入」，
+  而不是自動字串比對——換一批用詞就會抓錯或抓不到。
 - 系統提示（`src/agent/fxGuardian.ts` 的 `buildSystemPrompt()`）與示範腳本（`src/agent/mockReply.ts`）都會帶入這份參考，
   但**只作為輔助說法**，不可用來改變三種模式的自主權限規則（例如 mode 3 觸價後仍只能示警建議）。
 - 注意：這是該幣別「對美元」的國際匯率指數判讀（如美元指數、USD/JPY、USD/CNY），
