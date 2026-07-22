@@ -6,7 +6,7 @@ import type { FxDatabase } from "../types/fx";
 // ============================================================
 export const mockDb: FxDatabase = {
   today: "2026-07-15",
-  user: { name: "陳先生", tier: "DAWHO 大戶", memberId: "SP-88031" },
+  user: { name: "洪先生", tier: "DAWHO 大戶", memberId: "SP-88031" },
   accounts: [
     { ccy: "TWD", label: "臺幣存款", balance: 142957 },
     { ccy: "USD", label: "外幣存款", balance: 546 },

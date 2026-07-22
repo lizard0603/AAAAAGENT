@@ -44,6 +44,17 @@ function detectIntent(msg: string): Intent {
   return "unknown";
 }
 
+// 把「現況」整理成一個小表格，讓使用者一眼看懂目前的數字，而不是要從一整段話裡自己找。
+// 這是 GFM 風格的 pipe table（| 欄 | 欄 |），AgentScreen 的訊息渲染器（renderAgentMessage）
+// 會把它畫成真正的表格；真 Claude 後端走 fxGuardian.ts 的 system prompt 時，也要求輸出
+// 同樣格式，兩條路徑呈現一致。開場報告後面一定接一句「小結」，把表格數字翻成白話結論，
+// 而不是只丟數字讓使用者自己解讀。
+function buildFactTable(rows: Array<[string, string]>): string {
+  const header = "| 項目 | 內容 |\n|---|---|";
+  const body = rows.map(([k, v]) => `| ${k} | ${v} |`).join("\n");
+  return `${header}\n${body}`;
+}
+
 export function mockReplyFromDb(
   db: FxDatabase,
   opp: Opportunity,
@@ -72,7 +83,6 @@ export function mockReplyFromDb(
   const outlookNote = trendOutlookNote(order.target_ccy); // 較完整的情境展望，用在被追問理由時
   // 兩種形式：mid 接在沒有句號結尾的子句後面（用逗號銜接）；
   // sentence 接在已經以「。」結尾的句子後面（不能再加逗號，否則變成「。，」）。
-  const shortHintMid = shortNote ? `，市場觀察（${shortNote}）` : "";
   const shortHintSentence = shortNote ? `市場觀察（${shortNote}）。` : "";
   const outlookHint = outlookNote ? `（${outlookNote}僅供參考，非本行牌告匯率預測）` : "";
   const calcLine = `以目前買入價 ${bankSell} 計算，NT$ ${fmt(amount)} 約可換得 ${sym} ${fmt(converted)}。`;
@@ -84,7 +94,13 @@ export function mockReplyFromDb(
     const reasonText = target != null ? `已達您設定的門檻 ${target}` : `已低於 20 日均價 ${rate.ma20}，是相對低點`;
     const statusLine = `${ccy}買入價 ${bankSell}，${reasonText}，仍在您的區間內（至 ${order.window_end}）。`;
     if (isOpener) {
-      return `${db.user.name}午安，${ccy}買入價已來到 ${bankSell}，${reasonText}。${calcLine}不過目前仍在您的換匯區間內（至 ${order.window_end}）${shortHintMid}，是否要現在鎖定、或再觀望一下，由您決定——需要我幫您鎖定嗎？`;
+      const rows: Array<[string, string]> = [["目前買入價", `${bankSell}`]];
+      rows.push(target != null ? ["您的門檻", `${target}（低於含）`] : ["20 日均價", `${rate.ma20}（現價已在此之下）`]);
+      rows.push(["換匯試算", `NT$ ${fmt(amount)} → ${sym} ${fmt(converted)}`]);
+      rows.push(["觀察區間", `至 ${order.window_end}`]);
+      if (shortNote) rows.push(["市場觀察", shortNote]);
+      const summary = `小結：${reasonText}，但區間尚未到期，市場仍有變化空間；是否現在鎖定、或再觀望，由您決定——需要我幫您鎖定嗎？`;
+      return `${db.user.name}午安，先幫您整理目前${ccy}的狀況：\n\n${buildFactTable(rows)}\n\n${summary}`;
     }
     if (intent === "cancel") {
       return `了解，若您想取消這筆委託，麻煩點上方「取消此委託」；我會停止監控${ccy}匯率，不會執行這筆換匯。`;
@@ -109,7 +125,14 @@ export function mockReplyFromDb(
     const reason = opp.touched ? "已達執行條件" : "區間已到期，將以當日匯率保證完成";
     const statusLine = `${ccy}買入價 ${bankSell}，${reason}。`;
     if (isOpener) {
-      return `${ccy}買入價 ${bankSell} ${reason}，${calcLine}依您的委託，換匯守衛可授權即執行，請確認是否送出。`;
+      const rows: Array<[string, string]> = [
+        ["目前買入價", `${bankSell}`],
+        ["執行條件", reason],
+        ["換匯試算", `NT$ ${fmt(amount)} → ${sym} ${fmt(converted)}`],
+      ];
+      if (shortNote) rows.push(["市場觀察", shortNote]);
+      const summary = `小結：${reason}，依您的委託，換匯守衛可授權即執行，請確認是否送出。`;
+      return `${ccy}換匯條件已符合，先幫您整理狀況：\n\n${buildFactTable(rows)}\n\n${summary}`;
     }
     if (intent === "cancel") {
       return `了解，若您想取消這筆委託，麻煩點上方「取消此委託」；不會執行這筆換匯。`;
@@ -128,11 +151,19 @@ export function mockReplyFromDb(
 
   // ---- monitoring (opp.state === "none") ----
   if (isOpener) {
+    const rows: Array<[string, string]> = [["目前買入價", `${bankSell}`]];
     if (target != null) {
-      const gap = Math.abs(bankSell - target).toFixed(decimals);
-      return `目前${ccy}買入價 ${bankSell}，距離您的目標 ${target} 還差約 ${gap}。我會持續監控，一旦觸及門檻立即通知您。`;
+      rows.push(["您的門檻", `${target}（低於含）`]);
+      rows.push(["距離門檻", `${Math.abs(bankSell - target).toFixed(decimals)}`]);
+    } else {
+      rows.push(["20 日均價", `${rate.ma20}`]);
     }
-    return `目前${ccy}買入價 ${bankSell}，20 日均價 ${rate.ma20}，暫時還沒看到相對低點。我會持續監控，一旦出現機會立即通知您。`;
+    if (shortNote) rows.push(["市場觀察", shortNote]);
+    const summary =
+      target != null
+        ? "小結：還沒到您設定的門檻，我會持續監控，一旦觸及立即通知您。"
+        : "小結：目前還沒看到相對低點，我會持續監控，一旦出現機會立即通知您。";
+    return `${db.user.name}您好，先幫您整理目前${ccy}的狀況：\n\n${buildFactTable(rows)}\n\n${summary}`;
   }
 
   const statusLine =

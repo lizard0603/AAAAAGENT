@@ -8,6 +8,89 @@ const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDig
 const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "人民幣" };
 const CCY_SYMBOL: Record<string, string> = { USD: "US$", JPY: "¥", CNY: "¥" };
 
+// ============================================================
+//  極簡 GFM pipe-table 解析／渲染
+//  ------------------------------------------------------------
+//  代理人（mockReply.ts 的開場報告、或真 Claude 走 fxGuardian.ts
+//  system prompt 時）會把「現況」整理成 `| 項目 | 內容 |` 這種標準
+//  markdown 表格，讓使用者一眼看數字，不用從整段話裡自己找。這裡
+//  不拉整套 markdown 套件，只認「連續的 | 開頭行」這一種區塊，
+//  非表格的部分照舊當純文字（保留換行）顯示。
+// ============================================================
+type MsgBlock = { type: "text"; content: string } | { type: "table"; rows: string[][] };
+
+function isTableLine(line: string) {
+  const t = line.trim();
+  return t.startsWith("|") && t.endsWith("|") && t.length > 1;
+}
+
+function isSeparatorRow(cells: string[]) {
+  return cells.every(c => /^:?-{2,}:?$/.test(c.trim()));
+}
+
+function parseMessageBlocks(text: string): MsgBlock[] {
+  const lines = text.split("\n");
+  const blocks: MsgBlock[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (isTableLine(lines[i])) {
+      const tableLines: string[] = [];
+      while (i < lines.length && isTableLine(lines[i])) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      const rows = tableLines
+        .map(l => l.trim().slice(1, -1).split("|").map(c => c.trim()))
+        .filter(cells => !isSeparatorRow(cells));
+      if (rows.length > 0) blocks.push({ type: "table", rows });
+    } else {
+      const textLines: string[] = [];
+      while (i < lines.length && !isTableLine(lines[i])) {
+        textLines.push(lines[i]);
+        i++;
+      }
+      const content = textLines.join("\n").trim();
+      if (content !== "") blocks.push({ type: "text", content });
+    }
+  }
+  return blocks;
+}
+
+function AgentMessageContent({ text }: { text: string }) {
+  const blocks = parseMessageBlocks(text);
+  return (
+    <>
+      {blocks.map((b, idx) =>
+        b.type === "table" ? (
+          <table key={idx} style={{ width: "100%", borderCollapse: "collapse", margin: idx === 0 ? "0 0 8px" : "8px 0" }}>
+            <thead>
+              <tr>
+                {b.rows[0].map((h, ci) => (
+                  <th key={ci} style={{ textAlign: "left", padding: "5px 8px", borderBottom: `1px solid ${C.line}`, color: C.textDim, fontSize: 12, fontWeight: 700 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {b.rows.slice(1).map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((c, ci) => (
+                    <td key={ci} style={{
+                      padding: "5px 8px", borderBottom: ri < b.rows.length - 2 ? "1px solid rgba(255,255,255,.08)" : "none",
+                      color: ci === 0 ? C.textDim : C.text, fontSize: 13, fontWeight: ci === 0 ? 500 : 700,
+                    }}>{c}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div key={idx} style={{ whiteSpace: "pre-wrap", margin: idx === 0 ? 0 : "8px 0 0" }}>{b.content}</div>
+        )
+      )}
+    </>
+  );
+}
+
 export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onCancelOrder, onAddAnother }: {
   db: FxDatabase; opp: Opportunity; go: (s: string) => void;
   orders: FxOrder[]; activeIdx: number;
@@ -107,9 +190,9 @@ export function AgentScreen({ db, opp, go, orders, activeIdx, onSwitchOrder, onC
         {msgs.map((m, i) => (
           <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-end", justifyContent: m.role === "agent" ? "flex-start" : "flex-end" }}>
             {m.role === "agent" && <div style={{ width: 28, height: 28, borderRadius: 9, background: "rgba(201,161,90,.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon d={P.shield} size={15} color={C.goldLt} /></div>}
-            <div style={{ maxWidth: "78%", padding: "11px 14px", borderRadius: 16, fontSize: 14, lineHeight: 1.55, whiteSpace: "pre-wrap",
+            <div style={{ maxWidth: "78%", padding: "11px 14px", borderRadius: 16, fontSize: 14, lineHeight: 1.55,
               ...(m.role === "agent" ? { background: C.card, color: C.text, borderBottomLeftRadius: 4 } : { background: C.gold, color: C.ink, borderBottomRightRadius: 4, fontWeight: 500 }) }}>
-              {m.text}
+              {m.role === "agent" ? <AgentMessageContent text={m.text} /> : <div style={{ whiteSpace: "pre-wrap" }}>{m.text}</div>}
             </div>
           </div>
         ))}
