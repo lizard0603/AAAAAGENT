@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import { fmt, rateDecimals } from "../data/format";
-import type { FxDatabase, Opportunity } from "../types/fx";
+import type { CurrencyCode, FxDatabase, Opportunity } from "../types/fx";
 
 const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "人民幣" };
 const CCY_FLAG: Record<string, string> = { USD: "🇺🇸", JPY: "🇯🇵", CNY: "🇨🇳" };
@@ -21,16 +21,18 @@ const QUOTE_SECONDS = 90;
 type QuoteState = "idle" | "quoting" | "quoted" | "expired";
 
 export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void }) {
+  // db.fxWatch[0] 可能不存在 —— 使用者可以直接從首頁匯率卡的「立即換匯」進來，
+  // 這時還沒有任何換匯守衛委託，畫面要能退回成一般手動換匯表單，不能整頁掛掉。
   const order = db.fxWatch[0];
-  const ccy = order.target_ccy;
+  const ccy = order?.target_ccy ?? (Object.keys(db.fxRates)[0] as CurrencyCode) ?? "USD";
   const ccyLabel = CCY_LABEL[ccy] ?? ccy;
   const ccyFlag = CCY_FLAG[ccy] ?? "💱";
   const rate = db.fxRates[ccy];
   const decimals = rateDecimals(ccy);
   const boardRate = rate.bank_sell; // 牌告匯率（本行標準買入價，見 types/fx.ts 說明）
 
-  const agentFilled = opp.state !== "none";
-  const [twdAmt, setTwdAmt] = useState(agentFilled ? String(order.amount_twd) : "");
+  const agentFilled = opp.state !== "none" && order != null;
+  const [twdAmt, setTwdAmt] = useState(agentFilled ? String(order!.amount_twd) : "");
   const [agree, setAgree] = useState(false);
 
   const [quoteState, setQuoteState] = useState<QuoteState>("idle");
@@ -112,7 +114,7 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
         <div style={{ margin: "16px 18px 0", background: "linear-gradient(100deg,#eafaf0,#dff5e8)", border: `1px solid ${C.green}`, borderRadius: 14, padding: "12px 14px", display: "flex", gap: 10 }}>
           <Icon d={P.shield} size={20} color="#22A85A" />
           <div style={{ fontSize: 13, color: "#1a7a45", lineHeight: 1.5 }}>
-            <b>換匯守衛已為您預填</b>：NT$ {fmt(order.amount_twd)} → {ccyLabel}，正在為您取得即時匯率報價。
+            <b>換匯守衛已為您預填</b>：NT$ {fmt(order?.amount_twd ?? 0)} → {ccyLabel}，正在為您取得即時匯率報價。
           </div>
         </div>
       )}
@@ -227,13 +229,15 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
 }
 
 export function DoneScreen({ db, go }: { db: FxDatabase; go: (s: string) => void }) {
+  // 跟 ExchangeScreen 一樣：db.fxWatch[0] 可能不存在（手動換匯、沒有換匯守衛委託的情境）。
   const order = db.fxWatch[0];
-  const ccy = order.target_ccy;
+  const ccy = order?.target_ccy ?? (Object.keys(db.fxRates)[0] as CurrencyCode) ?? "USD";
   const ccyLabel = CCY_LABEL[ccy] ?? ccy;
   const sym = { USD: "US$", JPY: "¥", CNY: "¥" }[ccy] ?? ccy;
   const rate = db.fxRates[ccy];
   const decimals = rateDecimals(ccy);
-  const convertedAmt = Math.floor(order.amount_twd / rate.bank_sell);
+  const amountTwd = order?.amount_twd ?? 0;
+  const convertedAmt = Math.floor(amountTwd / rate.bank_sell);
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.lightBg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 30px", textAlign: "center" }}>
       <div style={{ width: 76, height: 76, borderRadius: 38, background: `linear-gradient(135deg,${C.green},#22A85A)`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 22 }}>
@@ -241,7 +245,7 @@ export function DoneScreen({ db, go }: { db: FxDatabase; go: (s: string) => void
       </div>
       <div style={{ fontSize: 22, fontWeight: 800, color: C.lightInk }}>換匯完成</div>
       <div style={{ fontSize: 15, color: C.lightDim, marginTop: 10, lineHeight: 1.6 }}>
-        已為您以 {rate.bank_sell.toFixed(decimals)} 完成換匯（{ccyLabel}）<br />NT$ {fmt(order.amount_twd)} → {sym} {fmt(convertedAmt)}
+        已為您以 {rate.bank_sell.toFixed(decimals)} 完成換匯（{ccyLabel}）<br />NT$ {fmt(amountTwd)} → {sym} {fmt(convertedAmt)}
       </div>
       <div style={{ marginTop: 20, background: "#eafaf0", border: `1px solid ${C.green}`, borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#1a7a45", lineHeight: 1.5 }}>
         本筆由「換匯守衛」在您授權下於甜蜜點協助完成，較 20 日均價 {rate.ma20.toFixed(decimals)} 節省約 NT$ {fmt(Math.round((rate.ma20 - rate.bank_sell) * convertedAmt))}。
