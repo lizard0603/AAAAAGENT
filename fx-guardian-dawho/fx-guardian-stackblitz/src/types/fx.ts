@@ -9,6 +9,7 @@ export interface Account {
   ccy: CurrencyCode;
   label: string;
   balance: number;
+  accountNo?: string; // 帳號末幾碼顯示用（換匯「再次確認」頁需要）
 }
 
 export interface FxRate {
@@ -89,4 +90,16 @@ export interface Opportunity {
 export interface ChatMessage {
   role: "agent" | "user";
   text: string;
+}
+
+// 從 ExchangeScreen（填寫資料）帶到 ConfirmScreen（再次確認）／DoneScreen（交易結果）的
+// 快照 —— 「再次確認」看到的必須是使用者剛剛實際敲定的那筆報價，不能重新用當下的
+// db.fxRates 反推，否則萬一畫面之間匯率條件變了，三個畫面顯示的數字會兜不起來。
+export interface PendingExchange {
+  ccy: CurrencyCode;
+  twdAmt: number;
+  boardRate: number;   // 牌告匯率
+  quoteRate: number;   // 敲定的兌換匯率
+  convertedAmt: number; // 依 quoteRate 換算的外幣金額
+  secondsLeft: number; // 送出確認當下，報價還剩幾秒（ConfirmScreen 接著往下倒數）
 }

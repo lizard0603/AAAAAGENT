@@ -5,18 +5,21 @@ import { detectOpportunity } from "./agent/opportunity";
 import { Icon, P, SignalBars, BatteryGlyph } from "./components/icons";
 import { HomeScreen } from "./components/HomeScreen";
 import { TrendScreen } from "./components/TrendScreen";
-import { ExchangeScreen, DoneScreen } from "./components/ExchangeScreen";
+import { ExchangeScreen, ConfirmScreen, DoneScreen } from "./components/ExchangeScreen";
 import { AgentScreen } from "./components/AgentScreen";
 import { SetupScreen } from "./components/SetupScreen";
 import { DevScenarioPanel } from "./components/DevScenarioPanel";
-import type { FxOrder } from "./types/fx";
+import type { FxOrder, PendingExchange } from "./types/fx";
 
-type Screen = "home" | "trend" | "exchange" | "done" | "agent" | "setup";
+type Screen = "home" | "trend" | "exchange" | "confirm" | "done" | "agent" | "setup";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [fxWatch, setFxWatch] = useState<FxOrder[]>(mockDb.fxWatch);
   const [activeIdx, setActiveIdx] = useState(0);
+  // 「填寫資料」送出的那筆報價快照，「再次確認」跟「交易結果」都靠這個顯示，
+  // 不會在畫面之間重新用當下的 db.fxRates 反推（見 types/fx.ts 的 PendingExchange 說明）。
+  const [pendingExchange, setPendingExchange] = useState<PendingExchange | null>(null);
   const db = useMemo(() => ({ ...mockDb, fxWatch }), [fxWatch]);
   // Per-order opportunity states — the customer can have more than one order watched at once.
   const opps = useMemo(() => fxWatch.map(order => detectOpportunity({ ...mockDb, fxWatch: [order] })), [fxWatch]);
@@ -67,8 +70,13 @@ export default function App() {
           <div style={S.screen}>
             {screen === "home" && <HomeScreen db={db} opp={opp} go={go} />}
             {screen === "trend" && <TrendScreen db={db} opp={opp} go={go} />}
-            {screen === "exchange" && <ExchangeScreen db={db} opp={opp} go={go} />}
-            {screen === "done" && <DoneScreen db={db} go={go} />}
+            {screen === "exchange" && (
+              <ExchangeScreen db={db} opp={opp} go={go} onConfirm={(p) => { setPendingExchange(p); setScreen("confirm"); }} />
+            )}
+            {screen === "confirm" && pendingExchange && (
+              <ConfirmScreen db={db} pending={pendingExchange} go={go} onSubmit={() => setScreen("done")} />
+            )}
+            {screen === "done" && <DoneScreen db={db} go={go} pending={pendingExchange} />}
             {screen === "agent" && (
               <AgentScreen
                 db={activeDb}
@@ -86,7 +94,7 @@ export default function App() {
 
           <div style={S.tabBar}>
             {TABS.map((t) => {
-              const active = screen === t.id || (t.id === "home" && ["exchange","done"].includes(screen)) || (t.id === "agent" && screen === "setup");
+              const active = screen === t.id || (t.id === "home" && ["exchange","confirm","done"].includes(screen)) || (t.id === "agent" && screen === "setup");
               if (t.center) {
                 return (
                   <button key={t.id} onClick={() => go(t.id)} style={S.tabItem}>

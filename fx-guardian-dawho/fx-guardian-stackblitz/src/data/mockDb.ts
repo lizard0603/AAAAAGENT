@@ -8,9 +8,10 @@ export const mockDb: FxDatabase = {
   today: "2026-07-15",
   user: { name: "洪先生", tier: "DAWHO 大戶", memberId: "SP-88031" },
   accounts: [
-    { ccy: "TWD", label: "臺幣存款", balance: 142957 },
-    { ccy: "USD", label: "外幣存款", balance: 546 },
-    { ccy: "JPY", label: "日圓活存", balance: 1250000 },
+    { ccy: "TWD", label: "臺幣存款", balance: 142957, accountNo: "204-018-0082075-4" },
+    { ccy: "USD", label: "外幣存款", balance: 546, accountNo: "204-008-0082075-2" },
+    { ccy: "JPY", label: "日圓活存", balance: 1250000, accountNo: "204-008-0082075-3" },
+    { ccy: "CNY", label: "人民幣活存", balance: 0, accountNo: "204-008-0082075-6" },
   ],
   fxRates: {
     USD: { spot: 32.235, bank_buy: 32.11, bank_sell: 32.211, day_low: 32.18, day_high: 32.34, ma20: 32.02 },
