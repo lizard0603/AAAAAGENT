@@ -9,6 +9,16 @@ const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "
 const CCY_FLAG: Record<string, string> = { USD: "🇺🇸", JPY: "🇯🇵", CNY: "🇨🇳" };
 const QUOTE_SECONDS = 90;
 
+// 「交易日期」要顯示真正的今天，不是 db.today（那是驅動委託時間窗/到期判斷的示範時鐘，
+// 兩者用途不同——換這個不能連帶把 mockDb 裡其他跟時間有關的邏輯也改掉）。
+function todayDisplay(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}/${m}/${day}`;
+}
+
 // ============================================================
 //  即時報價（敲價）模擬
 //  ------------------------------------------------------------
@@ -190,7 +200,7 @@ export function ExchangeScreen({ db, opp, go, onConfirm }: {
         <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
           <b>結匯性質</b><span style={{ color: C.lightDim }}>常用申報性質 ▾</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><b>交易日期</b><span>{db.today.split("-").join("/")}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><b>交易日期</b><span>{todayDisplay()}</span></div>
       </div>
 
       {/* debit account */}
@@ -319,7 +329,7 @@ export function ConfirmScreen({ db, pending, go, onSubmit }: {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "14px 16px", background: "#f0eee9" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: C.lightInk }}>交易日期</span>
-          <span style={{ fontSize: 15, color: C.lightInk }}>{db.today.split("-").join("/")}</span>
+          <span style={{ fontSize: 15, color: C.lightInk }}>{todayDisplay()}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "14px 16px", background: "#fff" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: C.lightInk }}>尚餘<br />交易時間</span>
