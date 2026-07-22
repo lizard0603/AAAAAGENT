@@ -1,5 +1,5 @@
 import type { FxDatabase, Opportunity, ChatMessage } from "../types/fx";
-import { fmt } from "../data/format";
+import { fmt, rateDecimals } from "../data/format";
 import { trendOutlookNote, trendShortNote } from "../data/fxTrends";
 
 // ============================================================
@@ -32,9 +32,6 @@ import { trendOutlookNote, trendShortNote } from "../data/fxTrends";
 
 const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "人民幣" };
 const CCY_SYMBOL: Record<string, string> = { USD: "US$", JPY: "¥", CNY: "¥" };
-// 匯率本身的顯示位數不同（JPY 是每 1 圓兌台幣的小數，位數要多一些），
-// 差距試算要照這個位數算，不然像 JPY 用 toFixed(2) 幾乎永遠只會顯示 0.00。
-const RATE_DECIMALS: Record<string, number> = { JPY: 4, USD: 3, CNY: 2 };
 
 type Intent = "cancel" | "risk" | "why" | "calc" | "now" | "unknown";
 
@@ -63,7 +60,7 @@ export function mockReplyFromDb(
   const target = order.targetRate;
   const amount = order.amount_twd;
   const converted = Math.floor(amount / bankSell);
-  const decimals = RATE_DECIMALS[order.target_ccy] ?? 2;
+  const decimals = rateDecimals(order.target_ccy);
   const isOpener = userMessage.includes("（系統：");
   const intent = isOpener ? null : detectIntent(userMessage);
 

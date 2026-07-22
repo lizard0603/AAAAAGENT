@@ -28,12 +28,23 @@ export interface FxRate {
  */
 export type FxMode = 1 | 2 | 3;
 
+/**
+ * 門檻方向：targetRate 要「低於（含）」還是「高於（含）」才算觸價。
+ * 這個 app 目前只支援 TWD→外幣（買外幣），買外幣時同樣的台幣要換到更多外幣，
+ * 買入價（bank_sell）永遠是「越低越有利」——所以現行唯一合理的方向是 "below"。
+ * "above" 保留給未來若支援「賣外幣換台幣」（bank_buy 越高越有利）或停損類情境時使用；
+ * 目前 SetupScreen 會擋掉 above + 買外幣 的組合，避免設定出「等匯率變貴才觸發」
+ * 這種和換匯守衛「在有利時機執行」的初衷相反的委託。
+ */
+export type TargetDirection = "below" | "above";
+
 export interface FxOrder {
   pair: string;              // e.g. "TWD→USD"
   target_ccy: CurrencyCode;  // 要換入的外幣
   amount_twd: number;
   mode: FxMode;
   targetRate?: number;       // 門檻（模式 1、3）
+  targetDirection?: TargetDirection; // 門檻方向，預設 "below"（未設定時視為 below，向下相容舊資料）
   window_start?: string;     // 時間段起（模式 2、3）ISO date
   window_end?: string;       // 時間段迄（模式 2、3）ISO date
   note?: string;

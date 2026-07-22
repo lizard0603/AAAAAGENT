@@ -16,7 +16,16 @@ export function detectOpportunity(db: FxDatabase): Opportunity {
   const rate = db.fxRates[order.target_ccy];
   const bankSell = rate.bank_sell;
 
-  const touched = order.targetRate != null ? bankSell <= order.targetRate : false;
+  // 買外幣（TWD→target_ccy）時，買入價「越低」對客戶越有利，所以門檻預設方向是
+  // "below"（達到或優於，即 bankSell <= targetRate）。"above" 保留給未來的情境，
+  // 目前 SetupScreen 不會讓使用者存出 above + 買外幣 的組合。
+  const direction = order.targetDirection ?? "below";
+  const touched =
+    order.targetRate != null
+      ? direction === "below"
+        ? bankSell <= order.targetRate
+        : bankSell >= order.targetRate
+      : false;
   const expired = order.window_end ? db.today >= order.window_end : false;
 
   const base = {

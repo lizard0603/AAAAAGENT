@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
-import type { CurrencyCode, FxDatabase, FxOrder } from "../types/fx";
+import type { CurrencyCode, FxDatabase, FxOrder, TargetDirection } from "../types/fx";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
 
@@ -19,6 +19,7 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
   const [ccy, setCcy] = useState<CurrencyCode>(ccyOptions[0] ?? "USD");
   const [amount, setAmount] = useState("");
   const [targetRate, setTargetRate] = useState("");
+  const [targetDirection, setTargetDirection] = useState<TargetDirection>("below");
   const [windowStart, setWindowStart] = useState("");
   const [windowEnd, setWindowEnd] = useState("");
   const [note, setNote] = useState("");
@@ -28,12 +29,24 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
   const hasTarget = targetRate.trim() !== "";
   const hasWindow = windowStart.trim() !== "" && windowEnd.trim() !== "";
   const mode: 1 | 2 | 3 | null = hasTarget && hasWindow ? 3 : hasTarget ? 1 : hasWindow ? 2 : null;
+  const ccyLabel = CCY_LABEL[ccy] ?? ccy;
+
+  // 這個 app 目前只做「用台幣換外幣」（買外幣）。買外幣時，同樣的台幣要換到更多外幣，
+  // 代表買入價「越低」才對客戶越有利——所以門檻方向理論上只有「低於（含）」說得通。
+  // 選「高於（含）」等於要等匯率變貴才觸發，跟換匯守衛「在有利時機執行」的目的相反，
+  // 這邊直接攔下來，而不是讓使用者存出一筆邏輯上不會對自己有利的委託。
+  const directionMismatch = hasTarget && targetDirection === "above";
 
   function submit() {
     const amt = Number(amount);
     if (!amt || amt <= 0) return setError("請輸入要換匯的臺幣金額。");
     if (!mode) return setError("請至少填寫「目標匯率」或「時間區間」其中一項，換匯守衛才知道何時該幫您留意。");
     if (hasWindow && windowStart > windowEnd) return setError("時間區間的結束日期不能早於開始日期。");
+    if (directionMismatch) {
+      return setError(
+        `您這筆是用台幣換${ccyLabel}（買外幣）。同樣的台幣要換到更多${ccyLabel}，買入價要「越低」才對您有利，門檻方向請選「低於（含）」——選「高於（含）」代表要等匯率變貴才執行，方向相反了。`
+      );
+    }
     setError("");
     onSave({
       pair: `TWD→${ccy}`,
@@ -41,6 +54,7 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
       amount_twd: amt,
       mode,
       targetRate: hasTarget ? Number(targetRate) : undefined,
+      targetDirection: hasTarget ? targetDirection : undefined,
       window_start: hasWindow ? windowStart : undefined,
       window_end: hasWindow ? windowEnd : undefined,
       note: note.trim() || undefined,
@@ -90,12 +104,28 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
       {/* target rate */}
       <div style={{ padding: "18px 18px 0" }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 4 }}>目標匯率（選填）</div>
-        <div style={{ fontSize: 12.5, color: C.lightDim, marginBottom: 10 }}>達到這個買入價（或更低）就符合您的條件</div>
-        <div style={{ border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", display: "flex", alignItems: "center" }}>
+        <div style={{ fontSize: 12.5, color: C.lightDim, marginBottom: 10 }}>
+          您是用台幣換{ccyLabel}，買入價「越低」對您越有利，門檻方向預設「低於（含）」
+        </div>
+        <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+          {(["below", "above"] as TargetDirection[]).map(d => (
+            <button key={d} onClick={() => setTargetDirection(d)} style={{
+              flex: 1, border: `1px solid ${d === targetDirection ? C.goldDeep : C.lightLine}`, borderRadius: 10, padding: "10px 0",
+              background: d === targetDirection ? "#fbf2df" : "#fff", cursor: "pointer",
+              color: d === targetDirection ? C.goldDeep : C.lightInk, fontSize: 14, fontWeight: 700,
+            }}>{d === "below" ? "低於（含）✓ 有利" : "高於（含）"}</button>
+          ))}
+        </div>
+        <div style={{ border: `1px solid ${directionMismatch ? C.red : C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", display: "flex", alignItems: "center" }}>
           <input value={targetRate} onChange={e => setTargetRate(e.target.value.replace(/[^0-9.]/g, ""))} placeholder={`例如 ${rate?.ma20}`}
             style={{ border: "none", outline: "none", flex: 1, fontSize: 17, fontWeight: 700, color: C.lightInk, background: "transparent" }} />
-          <span style={{ color: C.lightDim }}>/ {CCY_LABEL[ccy] ?? ccy}</span>
+          <span style={{ color: C.lightDim }}>/ {ccyLabel}</span>
         </div>
+        {directionMismatch && (
+          <div style={{ marginTop: 8, fontSize: 12, color: C.red, lineHeight: 1.6 }}>
+            買外幣時同樣的台幣要換到更多{ccyLabel}，買入價要「越低」才對您有利。選「高於（含）」代表要等匯率變貴才觸發，方向和換匯守衛「在有利時機執行」的目的相反，請改選「低於（含）」。
+          </div>
+        )}
       </div>
 
       {/* window */}

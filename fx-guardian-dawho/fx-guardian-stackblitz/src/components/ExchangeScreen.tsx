@@ -1,18 +1,89 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
+import { fmt, rateDecimals } from "../data/format";
 import type { FxDatabase, Opportunity } from "../types/fx";
 
-const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
+const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "人民幣" };
+const CCY_FLAG: Record<string, string> = { USD: "🇺🇸", JPY: "🇯🇵", CNY: "🇨🇳" };
+const QUOTE_SECONDS = 90;
+
+// ============================================================
+//  即時報價（敲價）模擬
+//  ------------------------------------------------------------
+//  真實 App 在使用者輸入金額後，會向後台要一個「效期內鎖定」的
+//  兌換匯率（通常比牌告匯率略優，銀行對客戶端在該筆金額、該段
+//  時間內用這個價格成交），效期一到就得重新取得報價。這裡用一個
+//  固定的優惠價差模擬「敲價」的後台往返，純示範用途、無真實報價
+//  來源；效期同樣示範用 90 秒，倒數歸零就要求使用者重新取得匯率，
+//  不會偷偷延長或自動套用舊報價。
+// ============================================================
+type QuoteState = "idle" | "quoting" | "quoted" | "expired";
 
 export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void }) {
   const order = db.fxWatch[0];
-  const usd = db.fxRates.USD;
+  const ccy = order.target_ccy;
+  const ccyLabel = CCY_LABEL[ccy] ?? ccy;
+  const ccyFlag = CCY_FLAG[ccy] ?? "💱";
+  const rate = db.fxRates[ccy];
+  const decimals = rateDecimals(ccy);
+  const boardRate = rate.bank_sell; // 牌告匯率（本行標準買入價，見 types/fx.ts 說明）
+
   const agentFilled = opp.state !== "none";
   const [twdAmt, setTwdAmt] = useState(agentFilled ? String(order.amount_twd) : "");
   const [agree, setAgree] = useState(false);
-  const usdAmt = twdAmt ? Math.floor(Number(twdAmt) / usd.bank_sell) : 0;
+
+  const [quoteState, setQuoteState] = useState<QuoteState>("idle");
+  const [quoteRate, setQuoteRate] = useState<number | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(QUOTE_SECONDS);
+  const pendingAmtRef = useRef<string>(""); // 避免使用者在敲價中又改金額時，舊報價蓋掉新輸入
+
+  function requestQuote(amtStr: string) {
+    const amt = Number(amtStr);
+    if (!amt || amt <= 0) {
+      setQuoteState("idle");
+      setQuoteRate(null);
+      return;
+    }
+    setQuoteState("quoting");
+    setQuoteRate(null);
+    pendingAmtRef.current = amtStr;
+    window.setTimeout(() => {
+      if (pendingAmtRef.current !== amtStr) return; // 這筆報價已經過時，不套用
+      const spreadBp = 12; // 示範用優惠價差：比牌告匯率優惠萬分之12
+      const improved = Number((boardRate * (1 - spreadBp / 10000)).toFixed(decimals));
+      setQuoteRate(improved);
+      setSecondsLeft(QUOTE_SECONDS);
+      setQuoteState("quoted");
+    }, 900);
+  }
+
+  // 代理人已預填金額（從「一鍵授權並執行」跳轉過來）時，一進頁面就先敲一次價。
+  useEffect(() => {
+    if (twdAmt) requestQuote(twdAmt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 倒數計時：報價效期內每秒遞減，歸零就標記為過期，停止繼續倒數。
+  useEffect(() => {
+    if (quoteState !== "quoted") return;
+    if (secondsLeft <= 0) {
+      setQuoteState("expired");
+      return;
+    }
+    const t = window.setTimeout(() => setSecondsLeft(s => s - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [quoteState, secondsLeft]);
+
+  function onAmountChange(v: string) {
+    const digits = v.replace(/\D/g, "");
+    setTwdAmt(digits);
+    requestQuote(digits);
+  }
+
+  const convertedAmt = quoteRate ? Math.floor(Number(twdAmt) / quoteRate) : 0;
   const twdAccount = db.accounts.find(a => a.ccy === "TWD");
+  const canSubmit = agree && quoteState === "quoted";
 
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.lightBg }}>
@@ -41,7 +112,7 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
         <div style={{ margin: "16px 18px 0", background: "linear-gradient(100deg,#eafaf0,#dff5e8)", border: `1px solid ${C.green}`, borderRadius: 14, padding: "12px 14px", display: "flex", gap: 10 }}>
           <Icon d={P.shield} size={20} color="#22A85A" />
           <div style={{ fontSize: 13, color: "#1a7a45", lineHeight: 1.5 }}>
-            <b>換匯守衛已為您預填</b>：NT$ {fmt(order.amount_twd)} → 美元，以目前 {usd.bank_sell} 試算約 US$ {fmt(usdAmt)}。請確認後送出。
+            <b>換匯守衛已為您預填</b>：NT$ {fmt(order.amount_twd)} → {ccyLabel}，正在為您取得即時匯率報價。
           </div>
         </div>
       )}
@@ -63,7 +134,7 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
             <span style={{ fontSize: 18 }}>🇹🇼</span><span style={{ fontSize: 16, color: C.lightInk }}>新臺幣 ▾</span>
           </div>
           <div style={{ flex: 1, border: `1px solid ${agentFilled ? C.green : C.lightLine}`, borderRadius: 10, padding: "6px 12px", background: "#fff", display: "flex", alignItems: "center" }}>
-            <input value={twdAmt} onChange={e => setTwdAmt(e.target.value.replace(/\D/g, ""))} placeholder="金額"
+            <input value={twdAmt} onChange={e => onAmountChange(e.target.value)} placeholder="金額"
               style={{ border: "none", outline: "none", width: "100%", textAlign: "right", fontSize: 17, fontWeight: 700, color: C.lightInk, background: "transparent" }} />
             <span style={{ color: C.lightDim, marginLeft: 4 }}>元</span>
           </div>
@@ -75,24 +146,46 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
         <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>換成</div>
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1, border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 18 }}>🇺🇸</span><span style={{ fontSize: 16, color: C.lightInk }}>美金 ▾</span>
+            <span style={{ fontSize: 18 }}>{ccyFlag}</span><span style={{ fontSize: 16, color: C.lightInk }}>{ccyLabel} ▾</span>
           </div>
-          <div style={{ flex: 1, border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", textAlign: "right", fontSize: 17, fontWeight: 700, color: agentFilled ? C.lightInk : C.lightDim }}>
-            {usdAmt ? fmt(usdAmt) : "金額"} <span style={{ color: C.lightDim, fontWeight: 400 }}>元</span>
+          <div style={{ flex: 1, border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", textAlign: "right", fontSize: 17, fontWeight: 700, color: quoteState === "quoted" ? C.lightInk : C.lightDim }}>
+            {quoteState === "quoted" ? fmt(convertedAmt) : quoteState === "quoting" ? "敲價中…" : "金額"} <span style={{ color: C.lightDim, fontWeight: 400 }}>元</span>
           </div>
         </div>
       </div>
 
       {/* rate + info */}
       <div style={{ padding: "18px 18px 0", fontSize: 15, color: C.lightInk }}>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><b>兌換匯率</b><span>{usd.bank_sell}</span></div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${C.lightLine}`, marginTop: 6, paddingTop: 12 }}>
-          <b>尚餘交易時間</b><span style={{ color: C.lightDim }}>05:14:18</span>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+          <b>牌告匯率</b><span>{boardRate.toFixed(decimals)}</span>
         </div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
+          <b>兌換匯率</b>
+          {quoteState === "quoting" && <span style={{ color: C.lightDim }}>敲價中…</span>}
+          {quoteState === "quoted" && <span style={{ color: C.red, fontWeight: 800 }}>{quoteRate!.toFixed(decimals)}</span>}
+          {quoteState === "expired" && <span style={{ color: C.red }}>已逾時</span>}
+          {quoteState === "idle" && <span style={{ color: C.lightDim }}>請先輸入金額</span>}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderTop: `1px solid ${C.lightLine}`, marginTop: 6, paddingTop: 12 }}>
+          <b>尚餘交易時間</b>
+          {quoteState === "quoted" && (
+            <span style={{ color: secondsLeft <= 10 ? C.red : C.lightDim, fontWeight: secondsLeft <= 10 ? 800 : 400 }}>{secondsLeft} 秒</span>
+          )}
+          {quoteState === "expired" && (
+            <button onClick={() => requestQuote(twdAmt)} style={{
+              display: "flex", alignItems: "center", gap: 4, border: `1px solid ${C.goldDeep}`, background: "transparent",
+              color: C.goldDeep, borderRadius: 8, padding: "5px 10px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+            }}><Icon d={P.refresh} size={13} color={C.goldDeep} />重新取得匯率</button>
+          )}
+          {(quoteState === "idle" || quoteState === "quoting") && <span style={{ color: C.lightDim }}>—</span>}
+        </div>
+        {quoteState === "quoted" && (
+          <div style={{ fontSize: 11.5, color: C.lightDim, padding: "2px 0 6px" }}>此匯率為本筆交易的即時報價，效期 {QUOTE_SECONDS} 秒，逾期需重新取得。</div>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
           <b>結匯性質</b><span style={{ color: C.lightDim }}>常用申報性質 ▾</span>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><b>交易日期</b><span>2026/07/15</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><b>交易日期</b><span>{db.today.split("-").join("/")}</span></div>
       </div>
 
       {/* debit account */}
@@ -123,11 +216,11 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
       </div>
 
       <div style={{ padding: "18px 18px 26px" }}>
-        <button disabled={!agree} onClick={() => go("done")} style={{
+        <button disabled={!canSubmit} onClick={() => go("done")} style={{
           width: "100%", border: "none", borderRadius: 10, padding: "16px 0", fontSize: 18, fontWeight: 800,
-          cursor: agree ? "pointer" : "default",
-          background: agree ? `linear-gradient(100deg,${C.goldDeep},${C.gold})` : "#bdbdbd", color: agree ? C.ink : "#fff",
-        }}>下一步</button>
+          cursor: canSubmit ? "pointer" : "default",
+          background: canSubmit ? `linear-gradient(100deg,${C.goldDeep},${C.gold})` : "#bdbdbd", color: canSubmit ? C.ink : "#fff",
+        }}>{quoteState === "expired" ? "報價已逾時，請重新取得匯率" : "下一步"}</button>
       </div>
     </div>
   );
@@ -135,8 +228,12 @@ export function ExchangeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportuni
 
 export function DoneScreen({ db, go }: { db: FxDatabase; go: (s: string) => void }) {
   const order = db.fxWatch[0];
-  const usd = db.fxRates.USD;
-  const usdAmt = Math.floor(order.amount_twd / usd.bank_sell);
+  const ccy = order.target_ccy;
+  const ccyLabel = CCY_LABEL[ccy] ?? ccy;
+  const sym = { USD: "US$", JPY: "¥", CNY: "¥" }[ccy] ?? ccy;
+  const rate = db.fxRates[ccy];
+  const decimals = rateDecimals(ccy);
+  const convertedAmt = Math.floor(order.amount_twd / rate.bank_sell);
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.lightBg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 30px", textAlign: "center" }}>
       <div style={{ width: 76, height: 76, borderRadius: 38, background: `linear-gradient(135deg,${C.green},#22A85A)`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 22 }}>
@@ -144,10 +241,10 @@ export function DoneScreen({ db, go }: { db: FxDatabase; go: (s: string) => void
       </div>
       <div style={{ fontSize: 22, fontWeight: 800, color: C.lightInk }}>換匯完成</div>
       <div style={{ fontSize: 15, color: C.lightDim, marginTop: 10, lineHeight: 1.6 }}>
-        已為您以 {usd.bank_sell} 完成換匯<br />NT$ {fmt(order.amount_twd)} → US$ {fmt(usdAmt)}
+        已為您以 {rate.bank_sell.toFixed(decimals)} 完成換匯（{ccyLabel}）<br />NT$ {fmt(order.amount_twd)} → {sym} {fmt(convertedAmt)}
       </div>
       <div style={{ marginTop: 20, background: "#eafaf0", border: `1px solid ${C.green}`, borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#1a7a45", lineHeight: 1.5 }}>
-        本筆由「換匯守衛」在您授權下於甜蜜點協助完成，較 20 日均價 {usd.ma20} 節省約 NT$ {fmt(Math.round((usd.ma20 - usd.bank_sell) * usdAmt))}。
+        本筆由「換匯守衛」在您授權下於甜蜜點協助完成，較 20 日均價 {rate.ma20.toFixed(decimals)} 節省約 NT$ {fmt(Math.round((rate.ma20 - rate.bank_sell) * convertedAmt))}。
       </div>
       <button onClick={() => go("home")} style={{ marginTop: 26, border: "none", background: `linear-gradient(100deg,${C.goldDeep},${C.gold})`, color: C.ink, borderRadius: 10, padding: "14px 40px", fontSize: 16, fontWeight: 800, cursor: "pointer" }}>回首頁</button>
     </div>
