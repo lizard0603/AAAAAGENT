@@ -18,6 +18,7 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
   const ccyOptions = Object.keys(db.fxRates);
   const [ccy, setCcy] = useState<CurrencyCode>(ccyOptions[0] ?? "USD");
   const [amount, setAmount] = useState("");
+  const [fxAmount, setFxAmount] = useState("");
   const [targetRate, setTargetRate] = useState("");
   const [windowStart, setWindowStart] = useState("");
   const [windowEnd, setWindowEnd] = useState("");
@@ -25,13 +26,26 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
   const [error, setError] = useState("");
 
   const rate = db.fxRates[ccy];
+  const ccyLabel = CCY_LABEL[ccy] ?? ccy;
+  const hasTwdAmt = amount.trim() !== "";
+  const hasFxAmt = fxAmount.trim() !== "";
   const hasTarget = targetRate.trim() !== "";
   const hasWindow = windowStart.trim() !== "" && windowEnd.trim() !== "";
   const mode: 1 | 2 | 3 | null = hasTarget && hasWindow ? 3 : hasTarget ? 1 : hasWindow ? 2 : null;
 
   function submit() {
-    const amt = Number(amount);
-    if (!amt || amt <= 0) return setError("請輸入要換匯的臺幣金額。");
+    if (!hasTwdAmt && !hasFxAmt) return setError(`請擇一填寫「臺幣金額」或「${ccyLabel}金額」。`);
+    // 兩個金額欄互為擇一：填了台幣就照台幣算，只填外幣就用目前買入價換算成台幣金額；
+    // 兩個都填的話以台幣金額為準（見下方欄位間的提示文字）。
+    let amt: number;
+    if (hasTwdAmt) {
+      amt = Number(amount);
+      if (!amt || amt <= 0) return setError("臺幣金額請輸入大於 0 的數字。");
+    } else {
+      const fxAmt = Number(fxAmount);
+      if (!fxAmt || fxAmt <= 0) return setError(`${ccyLabel}金額請輸入大於 0 的數字。`);
+      amt = Math.round(fxAmt * rate.bank_sell);
+    }
     if (!mode) return setError("請至少填寫「目標匯率」或「時間區間」其中一項，換匯守衛才知道何時該幫您留意。");
     if (hasWindow && windowStart > windowEnd) return setError("時間區間的結束日期不能早於開始日期。");
     setError("");
@@ -82,11 +96,19 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
 
       {/* amount */}
       <div style={{ padding: "18px 18px 0" }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>我要用多少臺幣換</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 4 }}>我要用多少臺幣換</div>
+        <div style={{ fontSize: 12.5, color: C.lightDim, marginBottom: 10 }}>「臺幣金額」與「{ccyLabel}金額」擇一必填即可，兩者都填以臺幣金額為準</div>
         <div style={{ border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", display: "flex", alignItems: "center" }}>
           <input value={amount} onChange={e => setAmount(e.target.value.replace(/\D/g, ""))} placeholder="例如 1000000"
             style={{ border: "none", outline: "none", flex: 1, fontSize: 17, fontWeight: 700, color: C.lightInk, background: "transparent" }} />
           <span style={{ color: C.lightDim }}>TWD</span>
+        </div>
+        <div style={{ textAlign: "center", color: C.lightDim, fontSize: 12.5, padding: "8px 0" }}>或</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>我想換多少{ccyLabel}</div>
+        <div style={{ border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", display: "flex", alignItems: "center" }}>
+          <input value={fxAmount} onChange={e => setFxAmount(e.target.value.replace(/[^0-9.]/g, ""))} placeholder={`例如 ${rate ? fmt(Math.round(1000000 / rate.bank_sell)) : ""}`}
+            style={{ border: "none", outline: "none", flex: 1, fontSize: 17, fontWeight: 700, color: C.lightInk, background: "transparent" }} />
+          <span style={{ color: C.lightDim }}>{ccyLabel}</span>
         </div>
       </div>
 
