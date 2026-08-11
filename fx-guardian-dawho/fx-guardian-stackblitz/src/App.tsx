@@ -11,7 +11,7 @@ import { SetupScreen } from "./components/SetupScreen";
 import { CardScreen } from "./components/CardScreen";
 import { TravelAgentScreen } from "./components/TravelAgentScreen";
 import { DevScenarioPanel } from "./components/DevScenarioPanel";
-import type { FxOrder, PendingExchange } from "./types/fx";
+import type { FxOrder, PendingExchange, TravelFxHandoff } from "./types/fx";
 
 type Screen = "home" | "trend" | "exchange" | "confirm" | "done" | "agent" | "setup" | "card" | "travelAgent";
 
@@ -22,6 +22,10 @@ export default function App() {
   // 「填寫資料」送出的那筆報價快照，「再次確認」跟「交易結果」都靠這個顯示，
   // 不會在畫面之間重新用當下的 db.fxRates 反推（見 types/fx.ts 的 PendingExchange 說明）。
   const [pendingExchange, setPendingExchange] = useState<PendingExchange | null>(null);
+  // 旅遊支出小助手「前往換匯守衛設定」帶過來的預填資料，SetupScreen 用它預填
+  // 幣別／金額／觀察區間。只在透過 handoffToGuardian 進入 setup 時才有值——
+  // 其他管道（頂部導覽、「新增一筆」等）進 setup 一律由 go() 清空，避免殘留舊建議。
+  const [setupPrefill, setSetupPrefill] = useState<TravelFxHandoff | null>(null);
   const db = useMemo(() => ({ ...mockDb, fxWatch }), [fxWatch]);
   // Per-order opportunity states — the customer can have more than one order watched at once.
   const opps = useMemo(() => fxWatch.map(order => detectOpportunity({ ...mockDb, fxWatch: [order] })), [fxWatch]);
@@ -34,7 +38,14 @@ export default function App() {
   const activeDb = useMemo(() => ({ ...mockDb, fxWatch: fxWatch[clampedIdx] ? [fxWatch[clampedIdx]] : [] }), [fxWatch, clampedIdx]);
   const activeOpp = opps[clampedIdx] ?? detectOpportunity({ ...mockDb, fxWatch: [] });
   // "agent" (the monitoring/chat screen) requires a configured order first.
-  const go = (s: string) => setScreen(s === "agent" && fxWatch.length === 0 ? "setup" : (s as Screen));
+  const go = (s: string) => {
+    setSetupPrefill(null);
+    setScreen(s === "agent" && fxWatch.length === 0 ? "setup" : (s as Screen));
+  };
+  const handoffToGuardian = (handoff: TravelFxHandoff) => {
+    setSetupPrefill(handoff);
+    setScreen("setup");
+  };
   const saveOrder = (order: FxOrder) => {
     const next = [...fxWatch, order];
     setFxWatch(next);
@@ -57,9 +68,9 @@ export default function App() {
   ];
 
   return (
-    <div style={S.viewport}>
+    <div className="app-viewport" style={S.viewport}>
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        <div style={S.phone}>
+        <div className="phone-frame" style={S.phone}>
           <div style={S.statusBar}>
             <span>10:15</span>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -91,9 +102,9 @@ export default function App() {
                 onAddAnother={() => go("setup")}
               />
             )}
-            {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} />}
+            {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} prefill={setupPrefill} />}
             {screen === "card" && <CardScreen db={db} go={go} />}
-            {screen === "travelAgent" && <TravelAgentScreen db={db} go={go} />}
+            {screen === "travelAgent" && <TravelAgentScreen db={db} go={go} onHandoff={handoffToGuardian} />}
           </div>
 
           <div style={S.tabBar}>
@@ -129,7 +140,7 @@ export default function App() {
           onReset={() => { setFxWatch([]); setActiveIdx(0); setScreen("home"); }}
         />
       </div>
-      <p style={S.footnote}>原型展示 · DAWHO 換匯守衛 POC · 免金鑰示範模式</p>
+      <p className="dev-panel" style={S.footnote}>原型展示 · DAWHO 換匯守衛 POC · 免金鑰示範模式</p>
     </div>
   );
 }

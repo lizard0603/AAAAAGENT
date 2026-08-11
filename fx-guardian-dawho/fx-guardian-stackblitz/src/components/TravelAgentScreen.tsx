@@ -50,7 +50,7 @@ interface Suggestion {
   foreignAmount: number;
 }
 
-export function TravelAgentScreen({ db, go }: { db: FxDatabase; go: (s: string) => void }) {
+export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (s: string) => void; onHandoff: (handoff: TravelFxHandoff) => void }) {
   const signal = detectTravelSignal(db.cardTransactions);
 
   const [destId, setDestId] = useState(DESTINATIONS[0].id);
@@ -59,9 +59,11 @@ export function TravelAgentScreen({ db, go }: { db: FxDatabase; go: (s: string) 
   const [dailyBudget, setDailyBudget] = useState("3000");
   const [error, setError] = useState("");
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
-  const [handoffSent, setHandoffSent] = useState(false);
 
   const dest = DESTINATIONS.find(d => d.id === destId) ?? DESTINATIONS[0];
+  // 換匯守衛（SetupScreen）目前只能選 db.fxRates 裡有牌告匯率的幣別，
+  // 韓元／歐元只是這頁概算用的示範匯率，換匯守衛還選不到，沒辦法真的把委託帶過去。
+  const destSupported = !!db.fxRates[dest.ccy];
 
   function generate() {
     if (!startDate || !endDate) return setError("請填寫出發日與回國日。");
@@ -72,21 +74,20 @@ export function TravelAgentScreen({ db, go }: { db: FxDatabase; go: (s: string) 
     const totalTwd = days * budget;
     const foreignAmount = roundSuggested(totalTwd / getRate(db, dest), dest.ccy);
     setError("");
-    setHandoffSent(false);
     setSuggestion({ dest, days, dailyBudget: budget, totalTwd, foreignAmount });
   }
 
   function sendToGuardian() {
-    if (!suggestion) return;
-    const handoff: TravelFxHandoff = {
+    if (!suggestion || !db.fxRates[suggestion.dest.ccy]) return;
+    onHandoff({
       targetCcy: suggestion.dest.ccy,
       suggestedAmountForeign: suggestion.foreignAmount,
       suggestedAmountTwd: suggestion.totalTwd,
-    };
-    // 示意用：先把資料結構備好，方便之後直接帶入 SetupScreen 幫使用者預填，
-    // 目前還沒有實際串接換匯守衛委託。
-    console.log("[旅遊代理人] 準備交給換匯守衛的建議資料", handoff);
-    setHandoffSent(true);
+      // 觀察區間：今天到出發日，讓換匯守衛在出發前找相對低點，並保證出發前完成換匯。
+      windowStart: db.today,
+      windowEnd: startDate,
+      note: `旅遊支出小助手建議：${suggestion.dest.label}行程 ${startDate}～${endDate}，建議於出發前完成換匯。`,
+    });
   }
 
   return (
@@ -181,13 +182,14 @@ export function TravelAgentScreen({ db, go }: { db: FxDatabase; go: (s: string) 
             <div style={{ fontSize: 12.5, color: C.textDim, marginTop: 6, lineHeight: 1.6 }}>
               依 {suggestion.days} 天 × 每日預算 NT$ {fmt(suggestion.dailyBudget)}，概算總預算 NT$ {fmt(suggestion.totalTwd)}，實際依當時匯率為準。
             </div>
-            <button onClick={sendToGuardian} style={{
+            <button onClick={sendToGuardian} disabled={!destSupported} style={{
               marginTop: 12, width: "100%", border: `1px solid ${C.goldDeep}`, background: "transparent", color: C.goldLt,
-              borderRadius: 10, padding: "11px 0", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+              borderRadius: 10, padding: "11px 0", fontSize: 13.5, fontWeight: 700,
+              cursor: destSupported ? "pointer" : "not-allowed", opacity: destSupported ? 1 : 0.5,
             }}>前往換匯守衛設定</button>
-            {handoffSent && (
-              <div style={{ marginTop: 10, fontSize: 12, color: "#8fd9ac", lineHeight: 1.5 }}>
-                ✓ 已備妥換匯守衛建議資料（示意，尚未實際串接，資料已印在主控台）。
+            {!destSupported && (
+              <div style={{ marginTop: 10, fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>
+                換匯守衛目前還沒有{suggestion.dest.ccyLabel}的牌告匯率，無法直接帶入委託，請改到換匯守衛內手動設定。
               </div>
             )}
           </div>

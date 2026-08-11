@@ -47,7 +47,7 @@ export function DevScenarioPanel({ orderCount, onApply, onReset }: {
   onReset: () => void;
 }) {
   return (
-    <div style={{
+    <div className="dev-panel" style={{
       width: 280, maxHeight: 800, overflowY: "auto", background: "#17171b",
       border: "1px solid #2c2c33", borderRadius: 16, padding: "18px 16px", flexShrink: 0,
     }}>

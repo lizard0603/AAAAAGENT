@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
-import type { CurrencyCode, FxDatabase, FxOrder } from "../types/fx";
+import type { CurrencyCode, FxDatabase, FxOrder, TravelFxHandoff } from "../types/fx";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
 
@@ -14,15 +14,15 @@ const MODE_HINT: Record<1 | 2 | 3, string> = {
   3: "同時填了目標匯率與時間區間：達門檻但區間未到期時，AI 只會示警建議，是否鎖定由您決定；到期保證完成。",
 };
 
-export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order: FxOrder) => void; go: (s: string) => void }) {
+export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSave: (order: FxOrder) => void; go: (s: string) => void; prefill?: TravelFxHandoff | null }) {
   const ccyOptions = Object.keys(db.fxRates);
-  const [ccy, setCcy] = useState<CurrencyCode>(ccyOptions[0] ?? "USD");
+  const [ccy, setCcy] = useState<CurrencyCode>(prefill?.targetCcy ?? ccyOptions[0] ?? "USD");
   const [amount, setAmount] = useState("");
-  const [fxAmount, setFxAmount] = useState("");
+  const [fxAmount, setFxAmount] = useState(prefill ? String(prefill.suggestedAmountForeign) : "");
   const [targetRate, setTargetRate] = useState("");
-  const [windowStart, setWindowStart] = useState("");
-  const [windowEnd, setWindowEnd] = useState("");
-  const [note, setNote] = useState("");
+  const [windowStart, setWindowStart] = useState(prefill?.windowStart ?? "");
+  const [windowEnd, setWindowEnd] = useState(prefill?.windowEnd ?? "");
+  const [note, setNote] = useState(prefill?.note ?? "");
   const [error, setError] = useState("");
 
   const rate = db.fxRates[ccy];
@@ -78,6 +78,12 @@ export function SetupScreen({ db, onSave, go }: { db: FxDatabase; onSave: (order
           告訴換匯守衛您想要的條件，之後它會依這些條件幫您監控匯率、在對的時機通知或執行換匯。
         </div>
       </div>
+
+      {prefill && (
+        <div style={{ margin: "10px 18px 0", background: "#fbf2df", border: `1px solid ${C.goldDeep}`, borderRadius: 12, padding: "10px 14px", fontSize: 12.5, color: "#6a5a30", lineHeight: 1.6 }}>
+          已帶入旅遊支出小助手的建議金額與觀察區間，請確認後送出。
+        </div>
+      )}
 
       {/* currency */}
       <div style={{ padding: "18px 18px 0" }}>

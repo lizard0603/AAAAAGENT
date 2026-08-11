@@ -102,13 +102,18 @@ export interface ChatMessage {
   text: string;
 }
 
-// 旅遊代理人「建議換匯」卡片準備要交給換匯守衛的資料——目前「前往換匯守衛設定」按鈕
-// 只示意（console.log + 畫面提示），不會真的建立 FxOrder，但欄位先備好方便之後整合
-// SetupScreen（直接帶入 target_ccy／建議金額，省得使用者重新輸入一次）。
+// 旅遊代理人「建議換匯」卡片交給換匯守衛（SetupScreen）的預填資料——直接帶入
+// 幣別、建議外幣金額、觀察區間（今天到出發日，確保出發前完成換匯）與備註，
+// 使用者不用在 SetupScreen 重新輸入一次。只支援 db.fxRates 有牌告匯率的幣別
+// （目前 USD／JPY）；沒有牌告匯率的目的地（韓國／歐洲）無法交給換匯守衛，
+// TravelAgentScreen 會擋掉這個按鈕改用提示文字，請使用者自行到換匯守衛設定。
 export interface TravelFxHandoff {
   targetCcy: CurrencyCode;
   suggestedAmountForeign: number;
   suggestedAmountTwd: number;
+  windowStart: string;
+  windowEnd: string;
+  note: string;
 }
 
 // 從 ExchangeScreen（填寫資料）帶到 ConfirmScreen（再次確認）／DoneScreen（交易結果）的

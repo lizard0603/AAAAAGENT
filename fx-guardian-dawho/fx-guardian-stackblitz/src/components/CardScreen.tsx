@@ -2,6 +2,7 @@ import { useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import { fmt } from "../data/format";
+import { detectTravelSignal } from "../agent/travelSignal";
 import type { FxDatabase } from "../types/fx";
 
 const mmdd = (iso: string) => iso.slice(5).replace("-", "/");
@@ -20,7 +21,13 @@ const AVAILABLE_CREDIT = 161614;
 
 export function CardScreen({ db, go }: { db: FxDatabase; go: (s: string) => void }) {
   const [tab, setTab] = useState(0);
-  const transactions = db.cardTransactions.slice(0, 5);
+  // 偵測到的旅遊訊號那筆（如長榮航空機票）排到第 2 筆，緊跟在最新一筆消費後面，
+  // 不用滑到清單底部就能看到，其餘仍依日期新到舊排列。
+  const signal = detectTravelSignal(db.cardTransactions);
+  const rest = db.cardTransactions.filter(tx => tx !== signal?.transaction);
+  const transactions = signal
+    ? [rest[0], signal.transaction, ...rest.slice(1)].filter(Boolean).slice(0, 5)
+    : db.cardTransactions.slice(0, 5);
 
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.bg }}>
@@ -34,7 +41,7 @@ export function CardScreen({ db, go }: { db: FxDatabase; go: (s: string) => void
           <span style={{ flex: 1, textAlign: "center", fontSize: 20, fontWeight: 800, color: C.ink, marginRight: 26 }}>信用卡</span>
         </div>
 
-        <div style={{ display: "flex", gap: 22, marginTop: 18, fontSize: 15 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18, fontSize: 15 }}>
           {TABS.map((t, i) => (
             <span key={t} style={{
               color: i === tab ? C.goldDeep : "#9b9186", fontWeight: i === tab ? 800 : 600,
