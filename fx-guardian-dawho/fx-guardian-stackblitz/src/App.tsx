@@ -8,10 +8,12 @@ import { TrendScreen } from "./components/TrendScreen";
 import { ExchangeScreen, ConfirmScreen, DoneScreen } from "./components/ExchangeScreen";
 import { AgentScreen } from "./components/AgentScreen";
 import { SetupScreen } from "./components/SetupScreen";
+import { CardScreen } from "./components/CardScreen";
+import { TravelAgentScreen } from "./components/TravelAgentScreen";
 import { DevScenarioPanel } from "./components/DevScenarioPanel";
 import type { FxOrder, PendingExchange } from "./types/fx";
 
-type Screen = "home" | "trend" | "exchange" | "confirm" | "done" | "agent" | "setup";
+type Screen = "home" | "trend" | "exchange" | "confirm" | "done" | "agent" | "setup" | "card" | "travelAgent";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -90,11 +92,13 @@ export default function App() {
               />
             )}
             {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} />}
+            {screen === "card" && <CardScreen db={db} go={go} />}
+            {screen === "travelAgent" && <TravelAgentScreen db={db} go={go} />}
           </div>
 
           <div style={S.tabBar}>
             {TABS.map((t) => {
-              const active = screen === t.id || (t.id === "home" && ["exchange","confirm","done"].includes(screen)) || (t.id === "agent" && screen === "setup");
+              const active = screen === t.id || (t.id === "home" && ["exchange","confirm","done","card","travelAgent"].includes(screen)) || (t.id === "agent" && screen === "setup");
               if (t.center) {
                 return (
                   <button key={t.id} onClick={() => go(t.id)} style={S.tabItem}>

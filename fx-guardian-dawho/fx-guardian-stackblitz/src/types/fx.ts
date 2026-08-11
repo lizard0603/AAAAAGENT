@@ -64,12 +64,22 @@ export interface UserProfile {
   memberId: string;
 }
 
+// 信用卡消費紀錄 —— 旅遊財務代理人靠 mcc 判斷是否出現旅遊訊號（見 agent/travelSignal.ts）。
+// mcc 只給偵測邏輯用，不會顯示在畫面上。
+export interface CardTransaction {
+  date: string;      // ISO date，如 "2026-08-05"
+  merchant: string;  // 商家名稱（可能已含類別，如「餐廳/優步」），畫面直接顯示這個
+  amountTwd: number;
+  mcc: string;        // 商店類別代碼（Merchant Category Code），僅供後端／偵測邏輯使用
+}
+
 export interface FxDatabase {
   user: UserProfile;
   accounts: Account[];
   fxRates: Record<CurrencyCode, FxRate>;
   fxWatch: FxOrder[];
   history: FxConversion[];
+  cardTransactions: CardTransaction[];
   today: string; // ISO date, drives window/expiry logic in the demo
 }
 
@@ -90,6 +100,15 @@ export interface Opportunity {
 export interface ChatMessage {
   role: "agent" | "user";
   text: string;
+}
+
+// 旅遊代理人「建議換匯」卡片準備要交給換匯守衛的資料——目前「前往換匯守衛設定」按鈕
+// 只示意（console.log + 畫面提示），不會真的建立 FxOrder，但欄位先備好方便之後整合
+// SetupScreen（直接帶入 target_ccy／建議金額，省得使用者重新輸入一次）。
+export interface TravelFxHandoff {
+  targetCcy: CurrencyCode;
+  suggestedAmountForeign: number;
+  suggestedAmountTwd: number;
 }
 
 // 從 ExchangeScreen（填寫資料）帶到 ConfirmScreen（再次確認）／DoneScreen（交易結果）的

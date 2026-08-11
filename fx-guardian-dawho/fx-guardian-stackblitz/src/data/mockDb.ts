@@ -21,4 +21,18 @@ export const mockDb: FxDatabase = {
   // No order configured yet — the customer sets one up via the setup flow.
   fxWatch: [],
   history: [],
+  // 信用卡消費紀錄（依日期新到舊排列，跟畫面上「最新消費記錄」的順序一致）。
+  // 前四筆是「即將出國」情境（機票／訂房／飯店／行程），其餘是日常消費當背景雜訊，
+  // 用來測 agent/travelSignal.ts 的 detectTravelSignal() 有沒有正確只挑出旅遊訊號、
+  // 忽略無關消費。mcc 只給偵測邏輯用，不顯示在畫面上。
+  cardTransactions: [
+    { date: "2026-08-11", merchant: "網購/momo購物網", amountTwd: 1250, mcc: "5964" },
+    { date: "2026-08-10", merchant: "餐廳/欣葉台菜", amountTwd: 980, mcc: "5812" },
+    { date: "2026-08-10", merchant: "速食店/摩斯漢堡", amountTwd: 165, mcc: "5814" },
+    { date: "2026-08-09", merchant: "超商/全家便利商店", amountTwd: 125, mcc: "5411" },
+    { date: "2026-08-08", merchant: "KKday 行程", amountTwd: 3600, mcc: "4722" },
+    { date: "2026-08-07", merchant: "東京希爾頓飯店", amountTwd: 12400, mcc: "7011" },
+    { date: "2026-08-06", merchant: "Agoda 訂房", amountTwd: 8200, mcc: "4722" },
+    { date: "2026-08-05", merchant: "長榮航空", amountTwd: 18600, mcc: "4511" },
+  ],
 };

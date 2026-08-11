@@ -45,4 +45,6 @@ export const P = {
   shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
   spark: "M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M19 5l-4 4M9 15l-4 4",
   check: "M20 6L9 17l-5-5",
+  card: "M2 6h20v12H2zM2 10h20M6 15h4",
+  plane: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
 };

@@ -42,7 +42,7 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
         <div style={{ display: "flex", gap: 26, marginTop: 20, fontSize: 20, color: "#9b9186", fontWeight: 500 }}>
           <span>投資</span>
           <span style={{ color: C.goldDeep, fontWeight: 800, fontSize: 24 }}>存款</span>
-          <span>信用卡</span>
+          <span onClick={() => go("card")} style={{ cursor: "pointer" }}>信用卡</span>
           <span>證券</span>
           <span>貸款</span>
         </div>
@@ -64,11 +64,14 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
         </div>
       </div>
 
-      {/* promo pill */}
-      <div style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ color: C.text, fontSize: 15, fontWeight: 600 }}>定期定額限時申購手續費 0 元起</span>
-        <span style={{ color: C.gold, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-          立即了解 <span style={{ background: C.gold, color: C.ink, borderRadius: 10, width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>›</span>
+      {/* promo pill — 旅遊代理人觸發入口，偵測到旅遊訊號時導向 TravelAgentScreen */}
+      <div onClick={() => go("travelAgent")} style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+        <span style={{ color: C.text, fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icon d={P.plane} size={16} color={C.gold} />
+          偵測到您有旅遊消費紀錄，設定旅遊支出小助手
+        </span>
+        <span style={{ color: C.gold, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          立即設定 <span style={{ background: C.gold, color: C.ink, borderRadius: 10, width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>›</span>
         </span>
       </div>
 
