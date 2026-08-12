@@ -2,7 +2,6 @@ import { useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import { fmt } from "../data/format";
-import { detectTravelSignal } from "../agent/travelSignal";
 import type { FxDatabase } from "../types/fx";
 
 const mmdd = (iso: string) => iso.slice(5).replace("-", "/");
@@ -21,13 +20,7 @@ const AVAILABLE_CREDIT = 161614;
 
 export function CardScreen({ db, go }: { db: FxDatabase; go: (s: string) => void }) {
   const [tab, setTab] = useState(0);
-  // 偵測到的旅遊訊號那筆（如長榮航空機票）排到第 2 筆，緊跟在最新一筆消費後面，
-  // 不用滑到清單底部就能看到，其餘仍依日期新到舊排列。
-  const signal = detectTravelSignal(db.cardTransactions);
-  const rest = db.cardTransactions.filter(tx => tx !== signal?.transaction);
-  const transactions = signal
-    ? [rest[0], signal.transaction, ...rest.slice(1)].filter(Boolean).slice(0, 5)
-    : db.cardTransactions.slice(0, 5);
+  const transactions = db.cardTransactions.slice(0, 5);
 
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.bg }}>
@@ -52,16 +45,23 @@ export function CardScreen({ db, go }: { db: FxDatabase; go: (s: string) => void
         </div>
         <div style={{ height: 1, background: "rgba(0,0,0,.08)", margin: "0 0 16px" }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 14, color: "#8a8378", fontWeight: 600 }}>TWD臺幣</span>
-          <Icon d={P.chevR} size={14} color="#8a8378" />
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,.06)", borderRadius: 20, padding: "8px 16px" }}>
+            <span style={{ fontSize: 14, color: "#4a463f", fontWeight: 600 }}>TWD臺幣</span>
+            <Icon d={P.chevDown} size={13} color="#4a463f" />
+          </div>
         </div>
-        <div style={{ marginTop: 10 }}>
-          <span style={{ color: C.goldDeep, fontSize: 15, fontWeight: 700 }}>TWD </span>
-          <span style={{ color: C.goldDeep, fontSize: 13, fontWeight: 700 }}>未出帳金額</span>
-          <div style={{ color: C.goldDeep, fontSize: 40, fontWeight: 800, letterSpacing: .5 }}>{fmt(UNBILLED_AMOUNT)}</div>
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: 18 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 10 }}>
+            <div style={{ textAlign: "right", lineHeight: 1.3 }}>
+              <div style={{ color: C.goldDeep, fontSize: 13, fontWeight: 700 }}>TWD</div>
+              <div style={{ color: C.goldDeep, fontSize: 15, fontWeight: 700, whiteSpace: "nowrap" }}>未出帳金額</div>
+            </div>
+            <div style={{ color: C.goldDeep, fontSize: 40, fontWeight: 800, letterSpacing: .5 }}>{fmt(UNBILLED_AMOUNT)}</div>
+          </div>
+          <div style={{ color: "#6b6459", fontSize: 14, marginTop: 8 }}>可用額度 {fmt(AVAILABLE_CREDIT)}</div>
         </div>
-        <div style={{ color: "#6b6459", fontSize: 14, marginTop: 4 }}>可用額度 {fmt(AVAILABLE_CREDIT)}</div>
 
         <div style={{ display: "flex", justifyContent: "space-around", marginTop: 22 }}>
           {QUICK_ACTIONS.map(a => (

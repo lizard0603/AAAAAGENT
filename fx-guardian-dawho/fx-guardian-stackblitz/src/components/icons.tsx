@@ -39,6 +39,7 @@ export const P = {
   qr: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM19 14h2v2M17 19h4v2",
   eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7zM12 9a3 3 0 100 6 3 3 0 000-6z",
   chevR: "M9 6l6 6-6 6",
+  chevDown: "M6 9l6 6 6-6",
   swap: "M7 4v13M7 4L4 7M7 4l3 3M17 20V7M17 20l3-3M17 20l-3-3",
   clock: "M12 7v5l3 2M12 3a9 9 0 100 18 9 9 0 000-18z",
   refresh: "M21 12a9 9 0 11-3-6.7M21 3v5h-5",

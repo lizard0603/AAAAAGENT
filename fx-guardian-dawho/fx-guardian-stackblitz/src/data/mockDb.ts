@@ -22,17 +22,16 @@ export const mockDb: FxDatabase = {
   fxWatch: [],
   history: [],
   // 信用卡消費紀錄（依日期新到舊排列，跟畫面上「最新消費記錄」的順序一致）。
-  // 前四筆是「即將出國」情境（機票／訂房／飯店／行程），其餘是日常消費當背景雜訊，
-  // 用來測 agent/travelSignal.ts 的 detectTravelSignal() 有沒有正確只挑出旅遊訊號、
-  // 忽略無關消費。mcc 只給偵測邏輯用，不顯示在畫面上。
+  // AIRASIA_AK（機票，強訊號）跟 Trip.com（訂房／行程，中等訊號）是「即將出國」的
+  // 佐證，其餘是日常消費當背景雜訊，用來測 agent/travelSignal.ts 的
+  // detectTravelSignal() 有沒有正確只挑出旅遊訊號、忽略無關消費——這裡強訊號
+  // AIRASIA_AK 日期較舊，中等訊號 Trip.com 日期較新，用來驗證「強訊號優先於日期」
+  // 的排序規則。mcc 只給偵測邏輯用，不顯示在畫面上。
   cardTransactions: [
-    { date: "2026-08-11", merchant: "網購/momo購物網", amountTwd: 1250, mcc: "5964" },
-    { date: "2026-08-10", merchant: "餐廳/欣葉台菜", amountTwd: 980, mcc: "5812" },
-    { date: "2026-08-10", merchant: "速食店/摩斯漢堡", amountTwd: 165, mcc: "5814" },
-    { date: "2026-08-09", merchant: "超商/全家便利商店", amountTwd: 125, mcc: "5411" },
-    { date: "2026-08-08", merchant: "KKday 行程", amountTwd: 3600, mcc: "4722" },
-    { date: "2026-08-07", merchant: "東京希爾頓飯店", amountTwd: 12400, mcc: "7011" },
-    { date: "2026-08-06", merchant: "Agoda 訂房", amountTwd: 8200, mcc: "4722" },
-    { date: "2026-08-05", merchant: "長榮航空", amountTwd: 18600, mcc: "4511" },
+    { date: "2026-08-11", merchant: "連支*麥味登__北市合江", amountTwd: 220, mcc: "5814" },
+    { date: "2026-08-10", merchant: "Trip.com LondonGB", amountTwd: 18728, mcc: "4722" },
+    { date: "2026-08-10", merchant: "餐廳/優食", amountTwd: 199, mcc: "5812" },
+    { date: "2026-08-09", merchant: "速食店/CAMA", amountTwd: 80, mcc: "5814" },
+    { date: "2026-08-07", merchant: "AIRASIA_AK", amountTwd: 20035, mcc: "4511" },
   ],
 };
