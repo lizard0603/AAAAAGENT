@@ -17,29 +17,53 @@ interface Destination {
 
 // 這個 app 的 db.fxRates 目前只有 USD/JPY/CNY（換匯守衛支援的幣別）。
 // 韓國(KRW)、歐洲(EUR)沒有真實牌告匯率可用，這裡放一個粗估的示範匯率，
-// 只給這頁概算「建議換多少錢」用，不當作真的匯率報價；「其他」連粗估都沒有，
-// 建議換匯卡片會直接說明無法概算。
+// 只給這頁概算「建議換多少錢」用，不當作真的匯率報價。
 const DESTINATIONS: Destination[] = [
   { id: "JP", label: "日本", ccy: "JPY", ccyLabel: "日圓", flag: "🇯🇵" },
   { id: "KR", label: "韓國", ccy: "KRW", ccyLabel: "韓元", flag: "🇰🇷", fallbackRate: 0.024 },
   { id: "US", label: "美國", ccy: "USD", ccyLabel: "美元", flag: "🇺🇸" },
   { id: "EU", label: "歐洲", ccy: "EUR", ccyLabel: "歐元", flag: "🇪🇺", fallbackRate: 35 },
-  { id: "OTHER", label: "其他", ccy: "", ccyLabel: "外幣", flag: "🌍" },
 ];
 
-// 每日預算的目的地預設值——依 Numbeo 2026 各城市相對台北的生活成本倍數，
-// 乘上台灣旅遊每日基準 NT$1800 概算，只是背景參考，不是精算報價。
-const DEFAULT_BUDGET: Record<string, number> = { JP: 2000, KR: 2200, US: 5000, EU: 3600, OTHER: 2500 };
+// 下拉選單裡的其他常見目的地——這裡列的是常見的旅遊國家，不是完整的世界國家清單。
+// 中國(CNY)剛好是 db.fxRates 本來就有牌告匯率的幣別，所以照樣能算出建議換匯金額；
+// 其餘都沒有可靠匯率來源，ccy 留空，① 建議換匯卡片會直接不顯示（見下面 render 邏輯）。
+const OTHER_COUNTRIES: Destination[] = [
+  { id: "CN", label: "中國", ccy: "CNY", ccyLabel: "人民幣", flag: "🇨🇳" },
+  { id: "HK", label: "香港", ccy: "", ccyLabel: "港幣", flag: "🇭🇰" },
+  { id: "MO", label: "澳門", ccy: "", ccyLabel: "澳門幣", flag: "🇲🇴" },
+  { id: "SG", label: "新加坡", ccy: "", ccyLabel: "新加坡幣", flag: "🇸🇬" },
+  { id: "TH", label: "泰國", ccy: "", ccyLabel: "泰銖", flag: "🇹🇭" },
+  { id: "VN", label: "越南", ccy: "", ccyLabel: "越南盾", flag: "🇻🇳" },
+  { id: "MY", label: "馬來西亞", ccy: "", ccyLabel: "馬幣", flag: "🇲🇾" },
+  { id: "PH", label: "菲律賓", ccy: "", ccyLabel: "披索", flag: "🇵🇭" },
+  { id: "ID", label: "印尼", ccy: "", ccyLabel: "印尼盾", flag: "🇮🇩" },
+  { id: "IN", label: "印度", ccy: "", ccyLabel: "印度盧比", flag: "🇮🇳" },
+  { id: "GB", label: "英國", ccy: "", ccyLabel: "英鎊", flag: "🇬🇧" },
+  { id: "AU", label: "澳洲", ccy: "", ccyLabel: "澳幣", flag: "🇦🇺" },
+  { id: "NZ", label: "紐西蘭", ccy: "", ccyLabel: "紐幣", flag: "🇳🇿" },
+  { id: "CA", label: "加拿大", ccy: "", ccyLabel: "加幣", flag: "🇨🇦" },
+  { id: "AE", label: "阿聯酋", ccy: "", ccyLabel: "迪拉姆", flag: "🇦🇪" },
+  { id: "TR", label: "土耳其", ccy: "", ccyLabel: "里拉", flag: "🇹🇷" },
+  { id: "OTHER", label: "其他國家", ccy: "", ccyLabel: "外幣", flag: "🌍" },
+];
 
-const ROUND_TO: Record<string, number> = { JPY: 1000, KRW: 10000, USD: 50, EUR: 50 };
+const ALL_DESTINATIONS = [...DESTINATIONS, ...OTHER_COUNTRIES];
+
+// 每日預算的目的地預設值——依 Numbeo 2026 各城市相對台北的生活成本倍數，
+// 乘上台灣旅遊每日基準 NT$1800 概算，只是背景參考，不是精算報價。沒列出的
+// 目的地（下拉選單裡大多數國家）一律用 2500 這個通用預設值。
+const DEFAULT_BUDGET: Record<string, number> = { JP: 2000, KR: 2200, US: 5000, EU: 3600 };
+
+const ROUND_TO: Record<string, number> = { JPY: 1000, KRW: 10000, USD: 50, EUR: 50, CNY: 100 };
 
 const CARD_PITCH: Record<string, string> = {
   JP: "日本當地消費、日圓提領都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換日圓還有專屬結匯優惠。",
   KR: "韓國當地消費享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換韓元還有專屬結匯優惠。",
   US: "美國消費回饋最高，用「永豐幣倍卡」在 DAWHO app 換美元還有專屬結匯優惠。",
   EU: "歐元區消費享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換歐元還有專屬結匯優惠。",
-  OTHER: "不管去哪裡，海外消費都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 依實際幣別辦理結匯還有專屬優惠。",
 };
+const DEFAULT_CARD_PITCH = "不管去哪裡，海外消費都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 依實際幣別辦理結匯還有專屬優惠。";
 
 const CARD_MODES = [
   { id: "spend", label: "海外刷卡", icon: P.card, stat: "3.5%", statLabel: "現金回饋" },
@@ -76,10 +100,11 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
   const [cardApplySent, setCardApplySent] = useState(false);
   const [reportEnabled, setReportEnabled] = useState(false);
 
-  const dest = DESTINATIONS.find(d => d.id === destId) ?? DESTINATIONS[0];
+  const dest = ALL_DESTINATIONS.find(d => d.id === destId) ?? DESTINATIONS[0];
+  const isOtherCountry = OTHER_COUNTRIES.some(d => d.id === destId);
   // 換匯守衛（SetupScreen）目前只能選 db.fxRates 裡有牌告匯率的幣別，
   // 韓元／歐元只是這頁概算用的示範匯率，換匯守衛還選不到，沒辦法真的把委託帶過去；
-  // 「其他」連幣別都沒有，同樣擋掉。
+  // 沒有指定幣別的目的地（下拉選單裡大多數國家）同樣擋掉。
   const destSupported = !!dest.ccy && !!db.fxRates[dest.ccy];
   const activeCardMode = CARD_MODES.find(m => m.id === cardMode) ?? CARD_MODES[0];
 
@@ -158,6 +183,28 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
             }}>{d.flag} {d.label}</button>
           ))}
         </div>
+
+        {/* 其他國家——下拉選單，涵蓋常見目的地之外的其餘國家 */}
+        <div style={{ marginTop: 8, position: "relative" }}>
+          <select
+            value={isOtherCountry ? destId : ""}
+            onChange={e => e.target.value && selectDestination(e.target.value)}
+            style={{
+              width: "100%", appearance: "none", cursor: "pointer",
+              border: `1px solid ${isOtherCountry ? C.goldDeep : C.line}`, borderRadius: 10, padding: "10px 34px 10px 14px",
+              background: isOtherCountry ? "rgba(201,161,90,.18)" : "transparent",
+              color: isOtherCountry ? C.goldLt : C.textDim, fontSize: 14, fontWeight: 700, colorScheme: "dark",
+            }}
+          >
+            <option value="" disabled>🌍 選擇其他國家</option>
+            {OTHER_COUNTRIES.map(c => (
+              <option key={c.id} value={c.id}>{c.flag} {c.label}</option>
+            ))}
+          </select>
+          <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+            <Icon d={P.chevDown} size={13} color={isOtherCountry ? C.goldLt : C.textDim} />
+          </div>
+        </div>
       </div>
 
       <div style={{ padding: "20px 18px 0" }}>
@@ -199,34 +246,28 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
         <div style={{ padding: "22px 18px 0", display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: C.goldLt }}>換匯守衛為您準備了以下建議</div>
 
-          {/* ① 建議換匯 */}
-          <div style={{ background: C.card, borderRadius: 14, padding: "16px 16px" }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.goldLt, marginBottom: 8 }}>① 建議換匯</div>
-            {suggestion.foreignAmount != null ? (
-              <>
-                <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>
-                  建議換{suggestion.dest.ccyLabel}約 {fmt(suggestion.foreignAmount)}
-                </div>
-                <div style={{ fontSize: 12.5, color: C.textDim, marginTop: 6, lineHeight: 1.6 }}>
-                  依 {suggestion.days} 天 × 每日預算 NT$ {fmt(suggestion.dailyBudget)}，概算總預算 NT$ {fmt(suggestion.totalTwd)}，實際依當時匯率為準。
-                </div>
-                <button onClick={sendToGuardian} disabled={!destSupported} style={{
-                  marginTop: 12, width: "100%", border: `1px solid ${C.goldDeep}`, background: "transparent", color: C.goldLt,
-                  borderRadius: 10, padding: "11px 0", fontSize: 13.5, fontWeight: 700,
-                  cursor: destSupported ? "pointer" : "not-allowed", opacity: destSupported ? 1 : 0.5,
-                }}>前往換匯守衛設定</button>
-                {!destSupported && (
-                  <div style={{ marginTop: 10, fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>
-                    換匯守衛目前還沒有{suggestion.dest.ccyLabel}的牌告匯率，無法直接帶入委託，請改到換匯守衛內手動設定。
-                  </div>
-                )}
-              </>
-            ) : (
-              <div style={{ fontSize: 12.5, color: C.textDim, lineHeight: 1.6 }}>
-                「其他」沒有指定幣別，換匯守衛無法概算建議金額。請改選實際的目的地，或自行到換匯守衛依實際幣別設定委託。
+          {/* ① 建議換匯——沒有指定幣別的目的地無法概算，整張卡直接不顯示 */}
+          {suggestion.foreignAmount != null && (
+            <div style={{ background: C.card, borderRadius: 14, padding: "16px 16px" }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.goldLt, marginBottom: 8 }}>① 建議換匯</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>
+                建議換{suggestion.dest.ccyLabel}約 {fmt(suggestion.foreignAmount)}
               </div>
-            )}
-          </div>
+              <div style={{ fontSize: 12.5, color: C.textDim, marginTop: 6, lineHeight: 1.6 }}>
+                依 {suggestion.days} 天 × 每日預算 NT$ {fmt(suggestion.dailyBudget)}，概算總預算 NT$ {fmt(suggestion.totalTwd)}，實際依當時匯率為準。
+              </div>
+              <button onClick={sendToGuardian} disabled={!destSupported} style={{
+                marginTop: 12, width: "100%", border: `1px solid ${C.goldDeep}`, background: "transparent", color: C.goldLt,
+                borderRadius: 10, padding: "11px 0", fontSize: 13.5, fontWeight: 700,
+                cursor: destSupported ? "pointer" : "not-allowed", opacity: destSupported ? 1 : 0.5,
+              }}>前往換匯守衛設定</button>
+              {!destSupported && (
+                <div style={{ marginTop: 10, fontSize: 12, color: C.textDim, lineHeight: 1.5 }}>
+                  換匯守衛目前還沒有{suggestion.dest.ccyLabel}的牌告匯率，無法直接帶入委託，請改到換匯守衛內手動設定。
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ② 推薦信用卡 */}
           <div style={{ background: C.card, borderRadius: 14, padding: "16px 16px" }}>
@@ -238,7 +279,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
                   <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>永豐幣倍卡</span>
                   <span style={{ fontSize: 11, color: C.textDim, border: `1px solid ${C.line}`, borderRadius: 6, padding: "2px 6px" }}>雙幣卡</span>
                 </div>
-                <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>{CARD_PITCH[suggestion.dest.id]}</div>
+                <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>{CARD_PITCH[suggestion.dest.id] ?? DEFAULT_CARD_PITCH}</div>
                 {!db.user.ownsBiCcyCard && (
                   <button onClick={() => setCardApplySent(true)} disabled={cardApplySent} style={{
                     marginTop: 12, width: "100%", border: "none", borderRadius: 10, padding: "10px 0",
