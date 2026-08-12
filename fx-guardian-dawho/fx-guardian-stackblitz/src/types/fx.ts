@@ -62,6 +62,7 @@ export interface UserProfile {
   name: string;
   tier: string;
   memberId: string;
+  ownsBiCcyCard: boolean; // 是否已持有永豐幣倍卡——旅遊代理人推薦卡片時，沒有才會顯示「立即申辦」
 }
 
 // 信用卡消費紀錄 —— 旅遊財務代理人靠 mcc 判斷是否出現旅遊訊號（見 agent/travelSignal.ts）。
@@ -73,6 +74,34 @@ export interface CardTransaction {
   mcc: string;        // 商店類別代碼（Merchant Category Code），僅供後端／偵測邏輯使用
 }
 
+// 旅遊收支報告（旅程結束後）的示範資料——只有一筆寫死的過去行程（見
+// mockDb.pastTripReport），讓 Demo 控制台可以直接跳去預覽「旅遊回來後」的畫面
+// 長怎樣，跟 TravelAgentScreen 當下產生的建議、實際有沒有跑完旅程無關。
+export interface TripReportCategory {
+  label: string;
+  amountTwd: number;
+}
+
+export interface TripReportMerchant {
+  merchant: string;
+  amountTwd: number;
+}
+
+export interface TripReport {
+  destinationLabel: string;
+  flag: string;
+  ccy: CurrencyCode;
+  ccyLabel: string;
+  startDate: string;
+  endDate: string;
+  dailyBudget: number;
+  totalSpentTwd: number;
+  totalSpentForeign: number;
+  cashbackTwd: number; // 永豐幣倍卡海外刷卡回饋
+  categories: TripReportCategory[]; // 依金額由大到小排列，畫面直接照順序畫長條
+  topMerchants: TripReportMerchant[]; // 依金額由大到小排列
+}
+
 export interface FxDatabase {
   user: UserProfile;
   accounts: Account[];
@@ -80,6 +109,7 @@ export interface FxDatabase {
   fxWatch: FxOrder[];
   history: FxConversion[];
   cardTransactions: CardTransaction[];
+  pastTripReport: TripReport;
   today: string; // ISO date, drives window/expiry logic in the demo
 }
 

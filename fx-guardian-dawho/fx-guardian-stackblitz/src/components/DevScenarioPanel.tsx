@@ -41,10 +41,11 @@ const GROUPS = Array.from(new Set(SCENARIOS.map(s => s.group))).map(group => ({
   items: SCENARIOS.filter(s => s.group === group),
 }));
 
-export function DevScenarioPanel({ orderCount, onApply, onReset }: {
+export function DevScenarioPanel({ orderCount, onApply, onReset, onViewTripReport }: {
   orderCount: number;
   onApply: (order: FxOrder) => void;
   onReset: () => void;
+  onViewTripReport: () => void;
 }) {
   return (
     <div className="dev-panel" style={{
@@ -85,6 +86,18 @@ export function DevScenarioPanel({ orderCount, onApply, onReset }: {
           </div>
         </div>
       ))}
+
+      <div style={{ marginBottom: 4 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: "#c9a15a", marginBottom: 6 }}>旅遊收支報告</div>
+        <button onClick={onViewTripReport} style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          border: "1px solid #2c2c33", borderRadius: 9, padding: "9px 11px",
+          background: "#1e1e23", cursor: "pointer", textAlign: "left",
+        }}>
+          <span style={{ fontSize: 12, color: "#e6e6ea", fontWeight: 600 }}>查看：旅遊回國後的收支報告</span>
+          <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 800, borderRadius: 7, padding: "2px 8px", background: "#3a3a42", color: "#c7c7cf" }}>預覽</span>
+        </button>
+      </div>
     </div>
   );
 }

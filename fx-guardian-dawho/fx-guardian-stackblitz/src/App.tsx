@@ -10,10 +10,11 @@ import { AgentScreen } from "./components/AgentScreen";
 import { SetupScreen } from "./components/SetupScreen";
 import { CardScreen } from "./components/CardScreen";
 import { TravelAgentScreen } from "./components/TravelAgentScreen";
+import { TripReportScreen } from "./components/TripReportScreen";
 import { DevScenarioPanel } from "./components/DevScenarioPanel";
 import type { FxOrder, PendingExchange, TravelFxHandoff } from "./types/fx";
 
-type Screen = "home" | "trend" | "exchange" | "confirm" | "done" | "agent" | "setup" | "card" | "travelAgent";
+type Screen = "home" | "trend" | "exchange" | "confirm" | "done" | "agent" | "setup" | "card" | "travelAgent" | "tripReport";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -105,11 +106,12 @@ export default function App() {
             {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} prefill={setupPrefill} />}
             {screen === "card" && <CardScreen db={db} go={go} />}
             {screen === "travelAgent" && <TravelAgentScreen db={db} go={go} onHandoff={handoffToGuardian} />}
+            {screen === "tripReport" && <TripReportScreen db={db} go={go} />}
           </div>
 
           <div style={S.tabBar}>
             {TABS.map((t) => {
-              const active = screen === t.id || (t.id === "home" && ["exchange","confirm","done","card","travelAgent"].includes(screen)) || (t.id === "agent" && screen === "setup");
+              const active = screen === t.id || (t.id === "home" && ["exchange","confirm","done","card","travelAgent","tripReport"].includes(screen)) || (t.id === "agent" && screen === "setup");
               if (t.center) {
                 return (
                   <button key={t.id} onClick={() => go(t.id)} style={S.tabItem}>
@@ -138,6 +140,7 @@ export default function App() {
           orderCount={fxWatch.length}
           onApply={saveOrder}
           onReset={() => { setFxWatch([]); setActiveIdx(0); setScreen("home"); }}
+          onViewTripReport={() => go("tripReport")}
         />
       </div>
       <p className="dev-panel" style={S.footnote}>原型展示 · DAWHO 換匯守衛 POC · 免金鑰示範模式</p>

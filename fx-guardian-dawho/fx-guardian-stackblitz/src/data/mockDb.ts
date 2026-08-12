@@ -6,7 +6,8 @@ import type { FxDatabase } from "../types/fx";
 // ============================================================
 export const mockDb: FxDatabase = {
   today: "2026-07-15",
-  user: { name: "洪先生", tier: "DAWHO 大戶", memberId: "SP-88031" },
+  // ownsBiCcyCard: false，示範旅遊代理人推薦「永豐幣倍卡」時「立即申辦」按鈕會出現。
+  user: { name: "洪先生", tier: "DAWHO 大戶", memberId: "SP-88031", ownsBiCcyCard: false },
   accounts: [
     { ccy: "TWD", label: "臺幣存款", balance: 142957, accountNo: "204-018-0082075-4" },
     { ccy: "USD", label: "外幣存款", balance: 546, accountNo: "204-008-0082075-2" },
@@ -34,4 +35,24 @@ export const mockDb: FxDatabase = {
     { date: "2026-08-09", merchant: "速食店/CAMA", amountTwd: 80, mcc: "5814" },
     { date: "2026-08-07", merchant: "AIRASIA_AK", amountTwd: 20035, mcc: "4511" },
   ],
+  // 「旅遊收支報告」畫面的示範資料——一趟已經結束的日本行程，只給 Demo 控制台的
+  // 「查看旅遊回來後的畫面」入口用，跟上面 cardTransactions／旅遊代理人現算的建議
+  // 無關（那是「出發前」的情境，這筆是「回國後」的情境）。
+  pastTripReport: {
+    destinationLabel: "日本", flag: "🇯🇵", ccy: "JPY", ccyLabel: "日圓",
+    startDate: "2026-06-10", endDate: "2026-06-15", dailyBudget: 2000,
+    totalSpentTwd: 13850, totalSpentForeign: 68700, cashbackTwd: 485,
+    categories: [
+      { label: "住宿", amountTwd: 4600 },
+      { label: "餐飲", amountTwd: 3920 },
+      { label: "購物", amountTwd: 2980 },
+      { label: "交通", amountTwd: 1850 },
+      { label: "其他", amountTwd: 500 },
+    ],
+    topMerchants: [
+      { merchant: "東京希爾頓飯店", amountTwd: 4600 },
+      { merchant: "BicCamera 新宿東口店", amountTwd: 1980 },
+      { merchant: "一蘭拉麵 新宿店", amountTwd: 620 },
+    ],
+  },
 };
