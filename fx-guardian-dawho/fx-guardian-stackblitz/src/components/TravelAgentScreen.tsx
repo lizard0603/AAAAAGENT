@@ -137,7 +137,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
       // 觀察區間：今天到出發日，讓換匯守衛在出發前找相對低點，並保證出發前完成換匯。
       windowStart: db.today,
       windowEnd: startDate,
-      note: `旅遊支出小助手建議：${suggestion.dest.label}行程 ${startDate}～${endDate}，建議於出發前完成換匯。`,
+      note: `旅遊小助手建議：${suggestion.dest.label}行程 ${startDate}～${endDate}，建議於出發前完成換匯。`,
     });
   }
 
@@ -148,7 +148,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
         <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(201,161,90,.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Icon d={P.plane} size={20} color={C.goldLt} />
         </div>
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>旅遊支出小助手</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>旅遊小助手</div>
       </div>
 
       <div style={{ padding: "16px 18px 0" }}>
@@ -165,7 +165,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
                 看起來您即將出國，我主動來幫您準備這趟旅程的換匯與消費安排。
               </>
             ) : (
-              <>{db.user.name}您好，我是旅遊支出小助手。告訴我您的行程資訊，我可以幫您估算建議換匯金額，並推薦適合的出國消費卡片。</>
+              <>{db.user.name}您好，我是旅遊小助手。告訴我您的行程資訊，我可以幫您估算建議換匯金額，並推薦適合的出國消費卡片。</>
             )}
           </div>
         </div>
@@ -244,7 +244,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
 
       {suggestion && (
         <div style={{ padding: "22px 18px 0", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: C.goldLt }}>換匯守衛為您準備了以下建議</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: C.goldLt }}>旅遊小助手為您準備了以下建議</div>
 
           {/* ① 建議換匯——沒有指定幣別的目的地無法概算，整張卡直接不顯示 */}
           {suggestion.foreignAmount != null && (

@@ -69,7 +69,7 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
       <div onClick={() => go("travelAgent")} style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
         <span style={{ color: C.text, fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
           <Icon d={P.plane} size={16} color={C.gold} />
-          偵測到您有旅遊消費紀錄，設定旅遊支出小助手
+          偵測到您有旅遊消費紀錄，設定旅遊小助手
         </span>
         <span style={{ color: C.gold, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
           立即設定 <span style={{ background: C.gold, color: C.ink, borderRadius: 10, width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>›</span>

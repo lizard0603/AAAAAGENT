@@ -92,7 +92,7 @@ export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) =
 
       <div style={{ padding: "20px 18px 0" }}>
         <div style={{ fontSize: 12, color: C.textDim, lineHeight: 1.6, textAlign: "center" }}>
-          本報告由旅遊支出小助手於返國後自動彙整，實際消費請以信用卡帳單為準。
+          本報告由旅遊小助手於返國後自動彙整，實際消費請以信用卡帳單為準。
         </div>
       </div>
 

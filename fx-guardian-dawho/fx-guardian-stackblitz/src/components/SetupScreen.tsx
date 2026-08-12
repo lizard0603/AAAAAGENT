@@ -81,7 +81,7 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
 
       {prefill && (
         <div style={{ margin: "10px 18px 0", background: "#fbf2df", border: `1px solid ${C.goldDeep}`, borderRadius: 12, padding: "10px 14px", fontSize: 12.5, color: "#6a5a30", lineHeight: 1.6 }}>
-          已帶入旅遊支出小助手的建議金額與觀察區間，請確認後送出。
+          已帶入旅遊小助手的建議金額與觀察區間，請確認後送出。
         </div>
       )}
 

@@ -23,7 +23,7 @@ export default function App() {
   // 「填寫資料」送出的那筆報價快照，「再次確認」跟「交易結果」都靠這個顯示，
   // 不會在畫面之間重新用當下的 db.fxRates 反推（見 types/fx.ts 的 PendingExchange 說明）。
   const [pendingExchange, setPendingExchange] = useState<PendingExchange | null>(null);
-  // 旅遊支出小助手「前往換匯守衛設定」帶過來的預填資料，SetupScreen 用它預填
+  // 旅遊小助手「前往換匯守衛設定」帶過來的預填資料，SetupScreen 用它預填
   // 幣別／金額／觀察區間。只在透過 handoffToGuardian 進入 setup 時才有值——
   // 其他管道（頂部導覽、「新增一筆」等）進 setup 一律由 go() 清空，避免殘留舊建議。
   const [setupPrefill, setSetupPrefill] = useState<TravelFxHandoff | null>(null);
