@@ -1,6 +1,7 @@
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import { fmt } from "../data/format";
+import cardArt from "../assets/sinopac-card.png";
 import type { FxDatabase } from "../types/fx";
 
 const mmdd = (iso: string) => iso.slice(5).replace("-", "/");
@@ -10,9 +11,6 @@ const CATEGORY_COLOR = [C.goldLt, C.gold, C.goldDeep, "#8a7550", "#5c5340"];
 export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) => void }) {
   const r = db.pastTripReport;
   const days = Math.round((new Date(r.endDate).getTime() - new Date(r.startDate).getTime()) / 86400000) + 1;
-  const budgetTwd = days * r.dailyBudget;
-  const diffTwd = r.totalSpentTwd - budgetTwd;
-  const overBudget = diffTwd > 0;
   const maxCategory = Math.max(...r.categories.map(c => c.amountTwd));
 
   return (
@@ -37,20 +35,12 @@ export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) =
           <span style={{ fontSize: 30, fontWeight: 800, color: C.goldLt }}>NT$ {fmt(r.totalSpentTwd)}</span>
           <span style={{ fontSize: 13, color: C.textDim }}>约 {r.ccyLabel} {fmt(r.totalSpentForeign)}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12.5 }}>
-          <span style={{ color: C.textDim }}>對比預算 NT$ {fmt(budgetTwd)}</span>
-          <span style={{
-            fontWeight: 800, color: overBudget ? C.redSoft : "#8fd9ac",
-            background: overBudget ? "rgba(217,112,95,.15)" : "rgba(143,217,172,.15)",
-            borderRadius: 6, padding: "2px 8px",
-          }}>{overBudget ? `超支 NT$ ${fmt(diffTwd)}` : `結餘 NT$ ${fmt(-diffTwd)}`}</span>
-        </div>
       </div>
 
       {/* 卡片回饋 */}
       <div style={{ margin: "12px 18px 0", borderRadius: 14, padding: "12px 16px", background: C.card, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 21, borderRadius: 4, background: `linear-gradient(100deg,${C.goldDeep},${C.goldLt})`, flexShrink: 0 }} />
+          <img src={cardArt} alt="" style={{ width: 32, height: 20.3, borderRadius: 4, objectFit: "cover", flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>永豐幣倍卡 海外刷卡回饋</span>
         </div>
         <span style={{ fontSize: 16, fontWeight: 800, color: C.goldLt }}>+NT$ {fmt(r.cashbackTwd)}</span>

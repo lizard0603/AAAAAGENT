@@ -70,7 +70,7 @@ export default function App() {
 
   return (
     <div className="app-viewport" style={S.viewport}>
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+      <div style={{ position: "relative" }}>
         <div className="phone-frame" style={S.phone}>
           <div style={S.statusBar}>
             <span>10:15</span>
@@ -136,12 +136,16 @@ export default function App() {
           </div>
         </div>
 
-        <DevScenarioPanel
-          orderCount={fxWatch.length}
-          onApply={saveOrder}
-          onReset={() => { setFxWatch([]); setActiveIdx(0); setScreen("home"); }}
-          onViewTripReport={() => go("tripReport")}
-        />
+        {/* 獨立定位在手機畫面右側，不影響上面 phone-frame 的置中；左邊界線 + 間距
+            讓它跟手機畫面有明確區隔，一看就知道不是同一個東西。 */}
+        <div className="dev-panel" style={{ position: "absolute", top: 0, left: "100%", height: "100%", marginLeft: 56, paddingLeft: 28, borderLeft: "1px solid #2c2c33" }}>
+          <DevScenarioPanel
+            orderCount={fxWatch.length}
+            onApply={saveOrder}
+            onReset={() => { setFxWatch([]); setActiveIdx(0); setScreen("home"); }}
+            onViewTripReport={() => go("tripReport")}
+          />
+        </div>
       </div>
       <p className="dev-panel" style={S.footnote}>原型展示 · DAWHO 換匯守衛 POC · 免金鑰示範模式</p>
     </div>

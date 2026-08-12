@@ -3,6 +3,7 @@ import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import { fmt } from "../data/format";
 import { detectTravelSignal } from "../agent/travelSignal";
+import cardArt from "../assets/sinopac-card.png";
 import type { CurrencyCode, FxDatabase, TravelFxHandoff } from "../types/fx";
 
 interface Destination {
@@ -233,7 +234,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
             <div style={{ display: "flex", gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
-                  <div style={{ width: 40, height: 26, borderRadius: 5, background: `linear-gradient(100deg,${C.goldDeep},${C.goldLt})`, flexShrink: 0 }} />
+                  <img src={cardArt} alt="" style={{ width: 40, height: 25.4, borderRadius: 5, objectFit: "cover", flexShrink: 0 }} />
                   <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>永豐幣倍卡</span>
                   <span style={{ fontSize: 11, color: C.textDim, border: `1px solid ${C.line}`, borderRadius: 6, padding: "2px 6px" }}>雙幣卡</span>
                 </div>
