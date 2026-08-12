@@ -1,5 +1,6 @@
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
+import tierSeal from "../assets/tier-seal.png";
 import type { FxDatabase, Opportunity } from "../types/fx";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -78,7 +79,7 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
       {/* tier gold card */}
       <div style={{ margin: "16px 18px 0", borderRadius: 16, overflow: "hidden", background: C.card }}>
         <div style={{ background: `linear-gradient(100deg,${C.goldDeep},${C.goldLt} 60%,${C.gold})`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 20 }}>🏵️</span>
+          <img src={tierSeal} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} />
           <span style={{ color: C.ink, fontSize: 18, fontWeight: 800 }}>7 月等級優惠</span>
           <span style={{ color: C.ink, opacity: .7 }}>ⓘ</span>
         </div>
