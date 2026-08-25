@@ -41,39 +41,44 @@ export const mockDb: FxDatabase = {
   pastTripReport: {
     destinationLabel: "日本", flag: "🇯🇵", ccy: "JPY", ccyLabel: "日圓",
     startDate: "2026-06-10", endDate: "2026-06-15", dailyBudget: 2000,
-    totalSpentTwd: 13850, totalSpentForeign: 68700, cashbackTwd: 485,
+    // 總支出調整為 NT$50,000（原本 13,850 的約 3.61 倍），下面所有跟金額相關的
+    // 假資料都照同一個比例等比例放大過，並手動調整成整數、讓各自的加總仍然
+    // 精確等於對應的總數（categories／dailySpendTwd／allMerchants 都加總等於
+    // totalSpentTwd；topMerchants 沿用原本對應到的三筆商家，數值與 allMerchants
+    // 一致）。
+    totalSpentTwd: 50000, totalSpentForeign: 250000, cashbackTwd: 1500,
     categories: [
-      { label: "住宿", amountTwd: 4600 },
-      { label: "餐飲", amountTwd: 3920 },
-      { label: "購物", amountTwd: 2980 },
-      { label: "交通", amountTwd: 1850 },
-      { label: "其他", amountTwd: 500 },
+      { label: "住宿", amountTwd: 16500 },
+      { label: "餐飲", amountTwd: 14000 },
+      { label: "購物", amountTwd: 11000 },
+      { label: "交通", amountTwd: 6500 },
+      { label: "其他", amountTwd: 2000 },
     ],
     topMerchants: [
-      { merchant: "東京希爾頓飯店", amountTwd: 4600 },
-      { merchant: "BicCamera 新宿東口店", amountTwd: 1980 },
-      { merchant: "一蘭拉麵 新宿店", amountTwd: 620 },
+      { merchant: "東京希爾頓飯店", amountTwd: 16500 },
+      { merchant: "BicCamera 新宿東口店", amountTwd: 7300 },
+      { merchant: "一蘭拉麵 新宿店", amountTwd: 2200 },
     ],
-    // 76,900 日圓換匯、花了 68,700 日圓，剩下這筆可以再利用。
-    remainingForeignAmount: 8200,
-    fxSavingsTwd: 320,
+    // 280,000 日圓換匯、花了 250,000 日圓，剩下這筆可以再利用。
+    remainingForeignAmount: 30000,
+    fxSavingsTwd: 1150,
     // 這趟是 6 月出國，示範「依季節樣態預測下趟旅程」用，沒有真的接歷史行程分析。
     predictedNextTripMonth: 9,
-    // 6 天日均消費，加總等於 totalSpentTwd（13,850）。
-    dailySpendTwd: [1200, 2800, 3600, 2200, 2650, 1400],
-    cashbackEquivalent: "一頓日式晚餐",
-    // 加總等於 categories 的總和（13,850），依天數順序排列，給「旅程消費回憶」用。
+    // 6 天日均消費，加總等於 totalSpentTwd（50,000）。
+    dailySpendTwd: [4300, 10100, 13000, 7900, 9600, 5100],
+    cashbackEquivalent: "一頓高級和牛燒肉晚餐",
+    // 加總等於 categories 的總和（50,000），依天數順序排列，給「旅程消費回憶」用。
     allMerchants: [
-      { merchant: "東京希爾頓飯店", amountTwd: 4600 },
-      { merchant: "一蘭拉麵 新宿店", amountTwd: 620 },
-      { merchant: "鳥貴族 居酒屋", amountTwd: 980 },
-      { merchant: "松屋", amountTwd: 340 },
-      { merchant: "表參道咖啡廳", amountTwd: 480 },
-      { merchant: "壽司郎 新宿店", amountTwd: 1500 },
-      { merchant: "BicCamera 新宿東口店", amountTwd: 1980 },
-      { merchant: "唐吉訶德 澀谷店", amountTwd: 1000 },
-      { merchant: "JR PASS／地鐵儲值", amountTwd: 1850 },
-      { merchant: "松本清藥妝店", amountTwd: 500 },
+      { merchant: "東京希爾頓飯店", amountTwd: 16500 },
+      { merchant: "一蘭拉麵 新宿店", amountTwd: 2200 },
+      { merchant: "鳥貴族 居酒屋", amountTwd: 3500 },
+      { merchant: "松屋", amountTwd: 1200 },
+      { merchant: "表參道咖啡廳", amountTwd: 1700 },
+      { merchant: "壽司郎 新宿店", amountTwd: 5400 },
+      { merchant: "BicCamera 新宿東口店", amountTwd: 7300 },
+      { merchant: "唐吉訶德 澀谷店", amountTwd: 3700 },
+      { merchant: "JR PASS／地鐵儲值", amountTwd: 6500 },
+      { merchant: "松本清藥妝店", amountTwd: 2000 },
     ],
   },
 };
