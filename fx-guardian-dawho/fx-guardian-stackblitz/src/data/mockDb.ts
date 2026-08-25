@@ -54,5 +54,26 @@ export const mockDb: FxDatabase = {
       { merchant: "BicCamera 新宿東口店", amountTwd: 1980 },
       { merchant: "一蘭拉麵 新宿店", amountTwd: 620 },
     ],
+    // 76,900 日圓換匯、花了 68,700 日圓，剩下這筆可以再利用。
+    remainingForeignAmount: 8200,
+    fxSavingsTwd: 320,
+    // 這趟是 6 月出國，示範「依季節樣態預測下趟旅程」用，沒有真的接歷史行程分析。
+    predictedNextTripMonth: 9,
+    // 6 天日均消費，加總等於 totalSpentTwd（13,850）。
+    dailySpendTwd: [1200, 2800, 3600, 2200, 2650, 1400],
+    cashbackEquivalent: "一頓日式晚餐",
+    // 加總等於 categories 的總和（13,850），依天數順序排列，給「旅程消費回憶」用。
+    allMerchants: [
+      { merchant: "東京希爾頓飯店", amountTwd: 4600 },
+      { merchant: "一蘭拉麵 新宿店", amountTwd: 620 },
+      { merchant: "鳥貴族 居酒屋", amountTwd: 980 },
+      { merchant: "松屋", amountTwd: 340 },
+      { merchant: "表參道咖啡廳", amountTwd: 480 },
+      { merchant: "壽司郎 新宿店", amountTwd: 1500 },
+      { merchant: "BicCamera 新宿東口店", amountTwd: 1980 },
+      { merchant: "唐吉訶德 澀谷店", amountTwd: 1000 },
+      { merchant: "JR PASS／地鐵儲值", amountTwd: 1850 },
+      { merchant: "松本清藥妝店", amountTwd: 500 },
+    ],
   },
 };

@@ -99,7 +99,15 @@ export interface TripReport {
   totalSpentForeign: number;
   cashbackTwd: number; // 永豐幣倍卡海外刷卡回饋
   categories: TripReportCategory[]; // 依金額由大到小排列，畫面直接照順序畫長條
-  topMerchants: TripReportMerchant[]; // 依金額由大到小排列
+  topMerchants: TripReportMerchant[]; // 消費排行 Top3，依金額由大到小排列
+  // 以下是報告後半段「正向、鼓勵消費」六個區塊用的資料——全部只是示範用的假資料，
+  // 沒有串接真的換匯歷史／消費預測引擎，數字寫死方便先把版面跟語氣定下來。
+  remainingForeignAmount: number; // 剩餘外幣運用建議：旅程結束後還沒花完、可以再利用的外幣金額
+  fxSavingsTwd: number; // 換匯成本回顧：透過換匯守衛換匯，較一般即期匯率多換得的台幣金額
+  predictedNextTripMonth: number; // 下趟旅程預測：依季節樣態預估的月份（1-12）
+  dailySpendTwd: number[]; // 每日消費趨勢：依天數排列，加總等於 totalSpentTwd
+  cashbackEquivalent: string; // 回饋最大化亮點：把 cashbackTwd 換算成的生活化說法（如「一頓日式晚餐」）
+  allMerchants: TripReportMerchant[]; // 消費商家清單：這趟旅程完整的消費足跡，加總等於 totalSpentTwd
 }
 
 export interface FxDatabase {
