@@ -175,7 +175,7 @@ export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) =
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>下趟旅程預測</div>
         <div style={{ background: C.card, borderRadius: 14, padding: "16px 16px", display: "flex", gap: 10, alignItems: "flex-start" }}>
           <div style={{ width: 28, height: 28, borderRadius: 9, background: "rgba(201,161,90,.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-            <Icon d={P.plane} size={15} color={C.goldLt} />
+            <Icon d={P.plane} size={15} color={C.goldLt} fill={C.goldLt} sw={0} />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6 }}>

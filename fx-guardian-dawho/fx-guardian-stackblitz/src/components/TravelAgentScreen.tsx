@@ -146,7 +146,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: `1px solid ${C.line}` }}>
         <span onClick={() => go("home")} style={{ cursor: "pointer", color: C.gold, fontSize: 26 }}>‹</span>
         <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(201,161,90,.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icon d={P.plane} size={20} color={C.goldLt} />
+          <Icon d={P.plane} size={20} color={C.goldLt} fill={C.goldLt} sw={0} />
         </div>
         <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>旅遊小助手</div>
       </div>
@@ -155,7 +155,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
         {/* 代理人開場說明 */}
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
           <div style={{ width: 28, height: 28, borderRadius: 9, background: "rgba(201,161,90,.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-            <Icon d={P.plane} size={15} color={C.goldLt} />
+            <Icon d={P.plane} size={15} color={C.goldLt} fill={C.goldLt} sw={0} />
           </div>
           <div style={{ maxWidth: "88%", padding: "12px 14px", borderRadius: 16, borderBottomLeftRadius: 4, background: C.card, color: C.text, fontSize: 14, lineHeight: 1.6 }}>
             {signal ? (
