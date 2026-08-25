@@ -38,6 +38,10 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
           <div style={{ display: "flex", gap: 18 }}>
             <Icon d={P.bell} size={23} color={C.ink} />
             <Icon d={P.headset} size={23} color={C.ink} />
+            {/* 旅遊代理人快速入口——跟下面的「偵測到您有旅遊消費紀錄」pill 同一個目的地 */}
+            <span onClick={() => go("travelAgent")} style={{ cursor: "pointer", display: "flex" }}>
+              <Icon d={P.plane} size={23} color={C.ink} />
+            </span>
           </div>
         </div>
         <div style={{ display: "flex", gap: 26, marginTop: 20, fontSize: 20, color: "#9b9186", fontWeight: 500 }}>
