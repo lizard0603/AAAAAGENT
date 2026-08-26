@@ -1,6 +1,7 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { C } from "../styles/theme";
-import { Icon, P } from "./icons";
+import { Icon, P, WithdrawIcon } from "./icons";
 import { fmt } from "../data/format";
 import { detectTravelSignal } from "../agent/travelSignal";
 import cardArt from "../assets/sinopac-card.png";
@@ -69,6 +70,14 @@ const CARD_MODES = [
   { id: "spend", label: "海外刷卡", icon: P.card, stat: "3.5%", statLabel: "現金回饋" },
   { id: "atm", label: "海外提款", icon: P.swap, stat: "0元", statLabel: "提領手續費" },
 ] as const;
+
+// 旅遊權益小格——次一級的資訊，圖示故意縮小、標籤用淺色，不跟右側回饋數字搶視覺。
+const CARD_PERKS: { label: string; sub?: string; renderIcon: (size: number, color: string) => ReactNode }[] = [
+  { label: "機場貴賓室", sub: "（達標享）", renderIcon: (size, color) => <Icon d={P.plane} size={size} color={color} fill={color} sw={0} /> },
+  { label: "旅遊不便險", renderIcon: (size, color) => <Icon d={P.shield} size={size} color={color} /> },
+  { label: "外幣/雙幣扣款", renderIcon: (size, color) => <Icon d={P.swap} size={size} color={color} /> },
+  { label: "日圓提領", renderIcon: (size, color) => <WithdrawIcon size={size} color={color} /> },
+];
 
 function getRate(db: FxDatabase, dest: Destination): number {
   return db.fxRates[dest.ccy]?.bank_sell ?? dest.fallbackRate ?? 1;
@@ -280,6 +289,22 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
                   <span style={{ fontSize: 11, color: C.textDim, border: `1px solid ${C.line}`, borderRadius: 6, padding: "2px 6px" }}>雙幣卡</span>
                 </div>
                 <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>{CARD_PITCH[suggestion.dest.id] ?? DEFAULT_CARD_PITCH}</div>
+
+                {/* 旅遊權益——四格小圖示＋標籤，層級比右側回饋數字低一階 */}
+                <div style={{ display: "flex", gap: 4, marginTop: 14 }}>
+                  {CARD_PERKS.map(perk => (
+                    <div key={perk.label} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                      <div style={{ width: 26, height: 26, borderRadius: 8, background: "rgba(201,161,90,.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {perk.renderIcon(13, C.goldLt)}
+                      </div>
+                      <span style={{ fontSize: 9.5, color: C.textDim, fontWeight: 600, textAlign: "center", lineHeight: 1.3 }}>
+                        {perk.label}
+                        {perk.sub && <span style={{ fontSize: 8, opacity: .75 }}>{perk.sub}</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
                 {!db.user.ownsBiCcyCard && (
                   <button onClick={() => setCardApplySent(true)} disabled={cardApplySent} style={{
                     marginTop: 12, width: "100%", border: "none", borderRadius: 10, padding: "10px 0",
