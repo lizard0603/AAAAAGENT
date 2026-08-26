@@ -289,49 +289,56 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
                   <span style={{ fontSize: 11, color: C.textDim, border: `1px solid ${C.line}`, borderRadius: 6, padding: "2px 6px" }}>雙幣卡</span>
                 </div>
                 <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.6 }}>{CARD_PITCH[suggestion.dest.id] ?? DEFAULT_CARD_PITCH}</div>
-
-                {/* 旅遊權益——四格小圖示＋標籤，層級比右側回饋數字低一階 */}
-                <div style={{ display: "flex", gap: 4, marginTop: 14 }}>
-                  {CARD_PERKS.map(perk => (
-                    <div key={perk.label} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-                      <div style={{ width: 26, height: 26, borderRadius: 8, background: "rgba(201,161,90,.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        {perk.renderIcon(13, C.goldLt)}
-                      </div>
-                      <span style={{ fontSize: 9.5, color: C.textDim, fontWeight: 600, textAlign: "center", lineHeight: 1.3 }}>
-                        {perk.label}
-                        {perk.sub && <span style={{ fontSize: 8, opacity: .75 }}>{perk.sub}</span>}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {!db.user.ownsBiCcyCard && (
-                  <button onClick={() => setCardApplySent(true)} disabled={cardApplySent} style={{
-                    marginTop: 12, width: "100%", border: "none", borderRadius: 10, padding: "10px 0",
-                    fontSize: 13, fontWeight: 800, cursor: cardApplySent ? "default" : "pointer",
-                    background: cardApplySent ? "transparent" : `linear-gradient(100deg,${C.goldDeep},${C.gold})`,
-                    color: cardApplySent ? "#8fd9ac" : C.ink,
-                  }}>{cardApplySent ? "✓ 已收到申辦意願，將由專人與您聯繫" : "立即申辦永豐幣倍卡"}</button>
-                )}
               </div>
 
               {/* 回饋試算儀表板 — 切換「海外刷卡／海外提款」模式看對應回饋 */}
-              <div style={{ width: 104, flexShrink: 0, background: C.bgDeep, borderRadius: 10, padding: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ width: 88, flexShrink: 0, background: C.bgDeep, borderRadius: 10, padding: 7, display: "flex", flexDirection: "column", gap: 6 }}>
                 {CARD_MODES.map(m => (
                   <button key={m.id} onClick={() => setCardMode(m.id)} style={{
-                    display: "flex", alignItems: "center", gap: 6, border: "none", borderRadius: 7, padding: "6px 8px", cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 5, border: "none", borderRadius: 7, padding: "6px 6px", cursor: "pointer",
                     background: cardMode === m.id ? "rgba(201,161,90,.22)" : "transparent",
                   }}>
-                    <Icon d={m.icon} size={13} color={cardMode === m.id ? C.goldLt : C.textDim} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: cardMode === m.id ? C.goldLt : C.textDim }}>{m.label}</span>
+                    <Icon d={m.icon} size={12} color={cardMode === m.id ? C.goldLt : C.textDim} />
+                    <span style={{ fontSize: 10, fontWeight: 700, color: cardMode === m.id ? C.goldLt : C.textDim }}>{m.label}</span>
                   </button>
                 ))}
                 <div style={{ textAlign: "center", marginTop: 2, borderTop: `1px solid ${C.line}`, paddingTop: 6 }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: C.goldLt }}>{activeCardMode.stat}</div>
-                  <div style={{ fontSize: 9.5, color: C.textDim, marginTop: 1 }}>{activeCardMode.statLabel}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: C.goldLt }}>{activeCardMode.stat}</div>
+                  <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>{activeCardMode.statLabel}</div>
                 </div>
               </div>
             </div>
+
+            {/* 旅遊權益——跨整個卡片寬度四等分，層級比左上文案／右側回饋數字低一階 */}
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
+              <div style={{ fontSize: 10.5, color: C.textDim, fontWeight: 700, marginBottom: 9, letterSpacing: .3 }}>本卡旅遊權益</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {CARD_PERKS.map(perk => (
+                  <div key={perk.label} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                    <div style={{ width: 26, height: 26, borderRadius: 8, background: "rgba(201,161,90,.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {perk.renderIcon(13, C.goldLt)}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <span style={{ fontSize: 9.5, color: C.textDim, fontWeight: 600, textAlign: "center", lineHeight: 1.3, whiteSpace: "nowrap" }}>
+                        {perk.label}
+                      </span>
+                      <span style={{ fontSize: 8, color: C.textDim, opacity: .65, lineHeight: 1.3, whiteSpace: "nowrap" }}>
+                        {perk.sub ?? " "}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {!db.user.ownsBiCcyCard && (
+              <button onClick={() => setCardApplySent(true)} disabled={cardApplySent} style={{
+                marginTop: 14, width: "100%", border: "none", borderRadius: 10, padding: "10px 0",
+                fontSize: 13, fontWeight: 800, cursor: cardApplySent ? "default" : "pointer",
+                background: cardApplySent ? "transparent" : `linear-gradient(100deg,${C.goldDeep},${C.gold})`,
+                color: cardApplySent ? "#8fd9ac" : C.ink,
+              }}>{cardApplySent ? "✓ 已收到申辦意願，將由專人與您聯繫" : "立即申辦永豐幣倍卡"}</button>
+            )}
           </div>
 
           {/* ③ 旅遊收支報告 */}
