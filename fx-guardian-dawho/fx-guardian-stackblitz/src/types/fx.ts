@@ -169,3 +169,25 @@ export interface PendingExchange {
   secondsLeft: number; // 送出確認當下，報價還剩幾秒（ConfirmScreen 接著往下倒數）
   settlementPurpose: string; // 這筆交易的結匯性質，跟著這筆報價快照走，見 FxOrder 的說明
 }
+
+// 旅遊收支報告「轉入外幣優利定存」帶過來的預填資料——只帶幣別跟剩餘外幣金額，
+// 期別、存款種類等定存條件由使用者自己在 DepositScreen 選。
+export interface DepositPrefill {
+  ccy: CurrencyCode;
+  amountForeign: number;
+}
+
+// 從 DepositScreen（填寫資料）帶到 DepositConfirmScreen（再次確認）／
+// DepositDoneScreen（交易結果）的快照，跟 PendingExchange 是同樣的道理。
+export interface PendingDeposit {
+  name: string;
+  ccy: CurrencyCode;
+  accountLabel: string;
+  accountNo: string;
+  period: string;
+  depositType: string;
+  amount: number;
+  interestMethod: string;
+  rate: number; // 送出當下算出的參考利率，快照下來，不會因為期別欄位之後被清掉而不見
+  renewal: string;
+}

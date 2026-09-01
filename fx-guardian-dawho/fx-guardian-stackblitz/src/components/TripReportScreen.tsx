@@ -3,7 +3,7 @@ import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import { fmt } from "../data/format";
 import cardArt from "../assets/sinopac-card.png";
-import type { FxDatabase } from "../types/fx";
+import type { DepositPrefill, FxDatabase } from "../types/fx";
 
 const mmdd = (iso: string) => iso.slice(5).replace("-", "/");
 const addDays = (iso: string, n: number) => {
@@ -35,12 +35,13 @@ function SpendTrendChart({ data }: { data: number[] }) {
   );
 }
 
-export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) => void }) {
+export function TripReportScreen({ db, go, onOpenDeposit }: { db: FxDatabase; go: (s: string) => void; onOpenDeposit: (prefill: DepositPrefill) => void }) {
   const r = db.pastTripReport;
   const days = Math.round((new Date(r.endDate).getTime() - new Date(r.startDate).getTime()) / 86400000) + 1;
   const maxCategory = Math.max(...r.categories.map(c => c.amountTwd));
-  // 以下三個都是示意用的按鈕狀態，點了只會顯示確認文字，沒有真的送出任何委託或提醒。
-  const [remainingChoice, setRemainingChoice] = useState<"deposit" | "keep" | null>(null);
+  // 「轉入外幣優利定存」點了會直接跳到 DepositScreen；「保留至下趟旅程」還是原本
+  // 示意用的按鈕狀態，點了只顯示確認文字，沒有真的送出任何委託或提醒。
+  const [remainingChoice, setRemainingChoice] = useState<"keep" | null>(null);
   const [rateWatchArmed, setRateWatchArmed] = useState(false);
 
   return (
@@ -166,10 +167,9 @@ export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) =
             幫這筆外幣找個更划算的去處，讓下一次出發更輕鬆。
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <button onClick={() => setRemainingChoice("deposit")} style={{
-              flex: 1, border: `1px solid ${remainingChoice === "deposit" ? C.goldDeep : C.line}`, borderRadius: 10, padding: "10px 8px",
-              background: remainingChoice === "deposit" ? "rgba(201,161,90,.18)" : "transparent", cursor: "pointer",
-              color: remainingChoice === "deposit" ? C.goldLt : C.textDim, fontSize: 12.5, fontWeight: 700,
+            <button onClick={() => onOpenDeposit({ ccy: r.ccy, amountForeign: r.remainingForeignAmount })} style={{
+              flex: 1, border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 8px",
+              background: "transparent", cursor: "pointer", color: C.textDim, fontSize: 12.5, fontWeight: 700,
             }}>轉入外幣優利定存</button>
             <button onClick={() => setRemainingChoice("keep")} style={{
               flex: 1, border: `1px solid ${remainingChoice === "keep" ? C.goldDeep : C.line}`, borderRadius: 10, padding: "10px 8px",
@@ -177,11 +177,9 @@ export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) =
               color: remainingChoice === "keep" ? C.goldLt : C.textDim, fontSize: 12.5, fontWeight: 700,
             }}>保留至下趟旅程</button>
           </div>
-          {remainingChoice && (
+          {remainingChoice === "keep" && (
             <div style={{ marginTop: 10, fontSize: 12, color: "#8fd9ac", lineHeight: 1.5 }}>
-              {remainingChoice === "deposit"
-                ? `✓ 已為您安排將 ${r.ccyLabel} ${fmt(r.remainingForeignAmount)} 轉入外幣優利定存，行員將盡快與您聯繫。`
-                : `✓ 已為您保留這筆 ${r.ccyLabel}，下次到${r.destinationLabel}直接帶著出發。`}
+              ✓ 已為您保留這筆 {r.ccyLabel}，下次到{r.destinationLabel}直接帶著出發。
             </div>
           )}
         </div>

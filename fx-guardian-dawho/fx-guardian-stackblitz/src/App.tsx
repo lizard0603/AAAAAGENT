@@ -11,10 +11,12 @@ import { SetupScreen } from "./components/SetupScreen";
 import { CardScreen } from "./components/CardScreen";
 import { TravelAgentScreen } from "./components/TravelAgentScreen";
 import { TripReportScreen } from "./components/TripReportScreen";
+import { DepositScreen, DepositConfirmScreen, DepositDoneScreen } from "./components/DepositScreen";
 import { DevScenarioPanel } from "./components/DevScenarioPanel";
-import type { FxOrder, PendingExchange, TravelFxHandoff } from "./types/fx";
+import type { DepositPrefill, FxOrder, PendingDeposit, PendingExchange, TravelFxHandoff } from "./types/fx";
 
-type Screen = "home" | "trend" | "exchange" | "confirm" | "done" | "agent" | "setup" | "card" | "travelAgent" | "tripReport";
+type Screen = "home" | "trend" | "exchange" | "confirm" | "done" | "agent" | "setup" | "card" | "travelAgent" | "tripReport"
+  | "deposit" | "depositConfirm" | "depositDone";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -57,6 +59,15 @@ export default function App() {
   const handoffToGuardian = (handoff: TravelFxHandoff) => {
     setSetupPrefill(handoff);
     setScreen("setup");
+  };
+  // 旅遊收支報告「轉入外幣優利定存」帶過來的預填資料（幣別＋剩餘外幣金額），
+  // DepositScreen 用它預填扣款帳號跟金額；送出後的快照另外存在 pendingDeposit，
+  // 供再次確認／交易結果兩個畫面沿用，跟換匯那組 pendingExchange 是同樣的道理。
+  const [depositPrefill, setDepositPrefill] = useState<DepositPrefill | null>(null);
+  const [pendingDeposit, setPendingDeposit] = useState<PendingDeposit | null>(null);
+  const openDeposit = (prefill: DepositPrefill) => {
+    setDepositPrefill(prefill);
+    setScreen("deposit");
   };
   const saveOrder = (order: FxOrder) => {
     const next = [...fxWatch, order];
@@ -117,12 +128,19 @@ export default function App() {
             {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} prefill={setupPrefill} />}
             {screen === "card" && <CardScreen db={db} go={go} />}
             {screen === "travelAgent" && <TravelAgentScreen db={db} go={go} onHandoff={handoffToGuardian} cameFromSignal={travelAgentFromSignal} />}
-            {screen === "tripReport" && <TripReportScreen db={db} go={go} />}
+            {screen === "tripReport" && <TripReportScreen db={db} go={go} onOpenDeposit={openDeposit} />}
+            {screen === "deposit" && (
+              <DepositScreen db={db} go={go} prefill={depositPrefill} onSubmit={(d) => { setPendingDeposit(d); setScreen("depositConfirm"); }} />
+            )}
+            {screen === "depositConfirm" && pendingDeposit && (
+              <DepositConfirmScreen pending={pendingDeposit} go={go} onSubmit={() => setScreen("depositDone")} />
+            )}
+            {screen === "depositDone" && <DepositDoneScreen pending={pendingDeposit} go={go} />}
           </div>
 
           <div style={S.tabBar}>
             {TABS.map((t) => {
-              const active = screen === t.id || (t.id === "home" && ["exchange","confirm","done","card","travelAgent","tripReport"].includes(screen)) || (t.id === "agent" && screen === "setup");
+              const active = screen === t.id || (t.id === "home" && ["exchange","confirm","done","card","travelAgent","tripReport","deposit","depositConfirm","depositDone"].includes(screen)) || (t.id === "agent" && screen === "setup");
               if (t.center) {
                 return (
                   <button key={t.id} onClick={() => go(t.id)} style={S.tabItem}>
