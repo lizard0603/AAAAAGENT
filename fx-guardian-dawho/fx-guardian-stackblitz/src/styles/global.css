@@ -28,3 +28,24 @@ body {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 3px;
 }
+
+/* Below this width there's no room for the phone mockup (390px) beside the
+   dev panel (280px) — that's what was clipping the phone off-screen on
+   real mobile browsers. The dev panel is explicitly not part of the app UI
+   (see DevScenarioPanel.tsx), so on real phones we drop it and let the
+   phone frame become the actual full-screen app instead of a small mockup. */
+@media (max-width: 760px) {
+  .dev-panel {
+    display: none;
+  }
+  .app-viewport {
+    padding: 0 !important;
+  }
+  .phone-frame {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: 100vw;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
