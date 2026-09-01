@@ -49,6 +49,8 @@ export interface FxOrder {
   window_start?: string;     // 時間段起（模式 2、3）ISO date
   window_end?: string;       // 時間段迄（模式 2、3）ISO date
   note?: string;
+  settlementPurpose?: string; // 結匯性質（外匯收支或交易申報用途），在 SetupScreen 先填好，
+                               // 換匯頁／再次確認頁直接沿用這筆委託的值，不用重填一次。
 }
 
 export interface FxConversion {
@@ -152,6 +154,7 @@ export interface TravelFxHandoff {
   windowStart: string;
   windowEnd: string;
   note: string;
+  settlementPurpose?: string; // 旅遊情境固定帶「國外觀光支出」，SetupScreen 直接預填，不用重選。
 }
 
 // 從 ExchangeScreen（填寫資料）帶到 ConfirmScreen（再次確認）／DoneScreen（交易結果）的
@@ -164,4 +167,5 @@ export interface PendingExchange {
   quoteRate: number;   // 敲定的兌換匯率
   convertedAmt: number; // 依 quoteRate 換算的外幣金額
   secondsLeft: number; // 送出確認當下，報價還剩幾秒（ConfirmScreen 接著往下倒數）
+  settlementPurpose: string; // 這筆交易的結匯性質，跟著這筆報價快照走，見 FxOrder 的說明
 }

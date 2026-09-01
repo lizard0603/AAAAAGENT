@@ -4,65 +4,60 @@ import { C } from "../styles/theme";
 import { Icon, P, WithdrawIcon } from "./icons";
 import { fmt } from "../data/format";
 import { detectTravelSignal } from "../agent/travelSignal";
+import { SINOPAC_CURRENCIES } from "../data/currencies";
+import { DEFAULT_SETTLEMENT_PURPOSE } from "../data/settlementPurpose";
 import cardArt from "../assets/sinopac-card.png";
 import type { CurrencyCode, FxDatabase, TravelFxHandoff } from "../types/fx";
+
+// 永豐信用卡申辦頁（幣倍卡卡面），從 DAWHO app 導過去掛 utm 追蹤這顆按鈕的成效。
+const CARD_APPLY_URL = "https://mma.sinopac.com/SinoCard/Application/ApplyCard?IsHouseLoanCard=false&CardFace=211840&utm_source=dawhoapp&utm_medium=button&utm_term=nonpaid&utm_content=d&utm_campaign=dawhocard202107";
 
 interface Destination {
   id: string;
   label: string;
-  ccy: CurrencyCode; // "" = 「其他」，沒有指定幣別，換匯建議直接跳過
-  ccyLabel: string; // 幣別的中文說法（日圓／韓元／美元／歐元），給建議文案用
+  ccy: CurrencyCode;
+  ccyLabel: string; // 幣別的中文說法，給建議文案用
   flag: string;
-  fallbackRate?: number; // TWD per 1 單位外幣，只有 db.fxRates 沒有這個幣別時才用
 }
 
-// 這個 app 的 db.fxRates 目前只有 USD/JPY/CNY（換匯守衛支援的幣別）。
-// 韓國(KRW)、歐洲(EUR)沒有真實牌告匯率可用，這裡放一個粗估的示範匯率，
-// 只給這頁概算「建議換多少錢」用，不當作真的匯率報價。
-const DESTINATIONS: Destination[] = [
-  { id: "JP", label: "日本", ccy: "JPY", ccyLabel: "日圓", flag: "🇯🇵" },
-  { id: "KR", label: "韓國", ccy: "KRW", ccyLabel: "韓元", flag: "🇰🇷", fallbackRate: 0.024 },
-  { id: "US", label: "美國", ccy: "USD", ccyLabel: "美元", flag: "🇺🇸" },
-  { id: "EU", label: "歐洲", ccy: "EUR", ccyLabel: "歐元", flag: "🇪🇺", fallbackRate: 35 },
-];
+// 目的地選單直接從永豐承作的幣別清單（data/currencies.ts）長出來——每個有對應
+// 國家的幣別都是一顆可以直接點的按鈕，都能實際概算建議換匯金額並帶去換匯守衛。
+// 離岸人民幣（CNH）沒有對應的獨立旅遊目的地，不會出現在這裡。
+const DESTINATIONS: Destination[] = SINOPAC_CURRENCIES
+  .filter(c => c.country)
+  .map(c => ({ id: c.ccy, label: c.country!, ccy: c.ccy, ccyLabel: c.ccyLabel, flag: c.flag }));
 
-// 下拉選單裡的其他常見目的地——這裡列的是常見的旅遊國家，不是完整的世界國家清單。
-// 中國(CNY)剛好是 db.fxRates 本來就有牌告匯率的幣別，所以照樣能算出建議換匯金額；
-// 其餘都沒有可靠匯率來源，ccy 留空，① 建議換匯卡片會直接不顯示（見下面 render 邏輯）。
+// 下拉選單裡的「其他國家」——永豐沒有承作當地幣別的常見旅遊目的地。這些目的地
+// 一律「預設換美金」概算建議金額（ccy 直接設成 USD），使用者到當地再另外處理
+// 現金；不是完全沒有建議可看，只是幣別統一用美金概算。
 const OTHER_COUNTRIES: Destination[] = [
-  { id: "CN", label: "中國", ccy: "CNY", ccyLabel: "人民幣", flag: "🇨🇳" },
-  { id: "HK", label: "香港", ccy: "", ccyLabel: "港幣", flag: "🇭🇰" },
-  { id: "MO", label: "澳門", ccy: "", ccyLabel: "澳門幣", flag: "🇲🇴" },
-  { id: "SG", label: "新加坡", ccy: "", ccyLabel: "新加坡幣", flag: "🇸🇬" },
-  { id: "TH", label: "泰國", ccy: "", ccyLabel: "泰銖", flag: "🇹🇭" },
-  { id: "VN", label: "越南", ccy: "", ccyLabel: "越南盾", flag: "🇻🇳" },
-  { id: "MY", label: "馬來西亞", ccy: "", ccyLabel: "馬幣", flag: "🇲🇾" },
-  { id: "PH", label: "菲律賓", ccy: "", ccyLabel: "披索", flag: "🇵🇭" },
-  { id: "ID", label: "印尼", ccy: "", ccyLabel: "印尼盾", flag: "🇮🇩" },
-  { id: "IN", label: "印度", ccy: "", ccyLabel: "印度盧比", flag: "🇮🇳" },
-  { id: "GB", label: "英國", ccy: "", ccyLabel: "英鎊", flag: "🇬🇧" },
-  { id: "AU", label: "澳洲", ccy: "", ccyLabel: "澳幣", flag: "🇦🇺" },
-  { id: "NZ", label: "紐西蘭", ccy: "", ccyLabel: "紐幣", flag: "🇳🇿" },
-  { id: "CA", label: "加拿大", ccy: "", ccyLabel: "加幣", flag: "🇨🇦" },
-  { id: "AE", label: "阿聯酋", ccy: "", ccyLabel: "迪拉姆", flag: "🇦🇪" },
-  { id: "TR", label: "土耳其", ccy: "", ccyLabel: "里拉", flag: "🇹🇷" },
-  { id: "OTHER", label: "其他國家", ccy: "", ccyLabel: "外幣", flag: "🌍" },
+  { id: "KR", label: "韓國", ccy: "USD", ccyLabel: "美金", flag: "🇰🇷" },
+  { id: "MO", label: "澳門", ccy: "USD", ccyLabel: "美金", flag: "🇲🇴" },
+  { id: "TH", label: "泰國", ccy: "USD", ccyLabel: "美金", flag: "🇹🇭" },
+  { id: "VN", label: "越南", ccy: "USD", ccyLabel: "美金", flag: "🇻🇳" },
+  { id: "MY", label: "馬來西亞", ccy: "USD", ccyLabel: "美金", flag: "🇲🇾" },
+  { id: "PH", label: "菲律賓", ccy: "USD", ccyLabel: "美金", flag: "🇵🇭" },
+  { id: "ID", label: "印尼", ccy: "USD", ccyLabel: "美金", flag: "🇮🇩" },
+  { id: "IN", label: "印度", ccy: "USD", ccyLabel: "美金", flag: "🇮🇳" },
+  { id: "AE", label: "阿聯酋", ccy: "USD", ccyLabel: "美金", flag: "🇦🇪" },
+  { id: "TR", label: "土耳其", ccy: "USD", ccyLabel: "美金", flag: "🇹🇷" },
+  { id: "OTHER", label: "其他國家", ccy: "USD", ccyLabel: "美金", flag: "🌍" },
 ];
 
 const ALL_DESTINATIONS = [...DESTINATIONS, ...OTHER_COUNTRIES];
 
 // 每日預算的目的地預設值——依 Numbeo 2026 各城市相對台北的生活成本倍數，
 // 乘上台灣旅遊每日基準 NT$1800 概算，只是背景參考，不是精算報價。沒列出的
-// 目的地（下拉選單裡大多數國家）一律用 2500 這個通用預設值。
-const DEFAULT_BUDGET: Record<string, number> = { JP: 2000, KR: 2200, US: 5000, EU: 3600 };
+// 目的地一律用 2500 這個通用預設值。目的地 id 是幣別代碼（見 DESTINATIONS），
+// 「其他國家」清單裡的目的地維持自己的國家代碼（如 KR、TH）。
+const DEFAULT_BUDGET: Record<string, number> = { JPY: 2000, KR: 2200, USD: 5000, EUR: 3600 };
 
-const ROUND_TO: Record<string, number> = { JPY: 1000, KRW: 10000, USD: 50, EUR: 50, CNY: 100 };
+const ROUND_TO: Record<string, number> = { JPY: 1000, CNY: 100, CNH: 100 };
 
 const CARD_PITCH: Record<string, string> = {
-  JP: "日本當地消費、日圓提領都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換日圓還有專屬結匯優惠。",
-  KR: "韓國當地消費享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換韓元還有專屬結匯優惠。",
-  US: "美國消費回饋最高，用「永豐幣倍卡」在 DAWHO app 換美元還有專屬結匯優惠。",
-  EU: "歐元區消費享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換歐元還有專屬結匯優惠。",
+  JPY: "日本當地消費、日圓提領都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換日圓還有專屬結匯優惠。",
+  USD: "美國消費回饋最高，用「永豐幣倍卡」在 DAWHO app 換美元還有專屬結匯優惠。",
+  EUR: "歐元區消費享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換歐元還有專屬結匯優惠。",
 };
 const DEFAULT_CARD_PITCH = "不管去哪裡，海外消費都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 依實際幣別辦理結匯還有專屬優惠。";
 
@@ -80,11 +75,11 @@ const CARD_PERKS: { label: string; sub?: string; renderIcon: (size: number, colo
 ];
 
 function getRate(db: FxDatabase, dest: Destination): number {
-  return db.fxRates[dest.ccy]?.bank_sell ?? dest.fallbackRate ?? 1;
+  return db.fxRates[dest.ccy]?.bank_sell ?? 1;
 }
 
 function roundSuggested(amount: number, ccy: string): number {
-  const step = ROUND_TO[ccy] ?? 100;
+  const step = ROUND_TO[ccy] ?? 50;
   return Math.max(step, Math.round(amount / step) * step);
 }
 
@@ -99,10 +94,13 @@ interface Suggestion {
 export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (s: string) => void; onHandoff: (handoff: TravelFxHandoff) => void }) {
   const signal = detectTravelSignal(db.cardTransactions);
 
-  const [destId, setDestId] = useState(DESTINATIONS[0].id);
+  // 預設目的地固定用日本——這是這個 demo 情境（signal 偵測、CARD_PITCH 文案）
+  // 一直以來預設展示的目的地，不要因為幣別清單的排序而跟著變動。
+  const DEFAULT_DEST_ID = DESTINATIONS.find(d => d.ccy === "JPY")?.id ?? DESTINATIONS[0].id;
+  const [destId, setDestId] = useState(DEFAULT_DEST_ID);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [dailyBudget, setDailyBudget] = useState(String(DEFAULT_BUDGET[DESTINATIONS[0].id]));
+  const [dailyBudget, setDailyBudget] = useState(String(DEFAULT_BUDGET[DEFAULT_DEST_ID] ?? 2500));
   const [error, setError] = useState("");
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [cardMode, setCardMode] = useState<(typeof CARD_MODES)[number]["id"]>("spend");
@@ -111,9 +109,8 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
 
   const dest = ALL_DESTINATIONS.find(d => d.id === destId) ?? DESTINATIONS[0];
   const isOtherCountry = OTHER_COUNTRIES.some(d => d.id === destId);
-  // 換匯守衛（SetupScreen）目前只能選 db.fxRates 裡有牌告匯率的幣別，
-  // 韓元／歐元只是這頁概算用的示範匯率，換匯守衛還選不到，沒辦法真的把委託帶過去；
-  // 沒有指定幣別的目的地（下拉選單裡大多數國家）同樣擋掉。
+  // 目的地的幣別現在一定對得到 db.fxRates（永豐支援的目的地用實際幣別，
+  // 「其他國家」一律預設美金），這裡留著是保險，避免萬一資料兜不起來時整頁掛掉。
   const destSupported = !!dest.ccy && !!db.fxRates[dest.ccy];
   const activeCardMode = CARD_MODES.find(m => m.id === cardMode) ?? CARD_MODES[0];
 
@@ -147,6 +144,7 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
       windowStart: db.today,
       windowEnd: startDate,
       note: `旅遊小助手建議：${suggestion.dest.label}行程 ${startDate}～${endDate}，建議於出發前完成換匯。`,
+      settlementPurpose: DEFAULT_SETTLEMENT_PURPOSE,
     });
   }
 
@@ -332,12 +330,12 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
             </div>
 
             {!db.user.ownsBiCcyCard && (
-              <button onClick={() => setCardApplySent(true)} disabled={cardApplySent} style={{
+              <button onClick={() => { window.open(CARD_APPLY_URL, "_blank", "noopener,noreferrer"); setCardApplySent(true); }} style={{
                 marginTop: 14, width: "100%", border: "none", borderRadius: 10, padding: "10px 0",
-                fontSize: 13, fontWeight: 800, cursor: cardApplySent ? "default" : "pointer",
+                fontSize: 13, fontWeight: 800, cursor: "pointer",
                 background: cardApplySent ? "transparent" : `linear-gradient(100deg,${C.goldDeep},${C.gold})`,
                 color: cardApplySent ? "#8fd9ac" : C.ink,
-              }}>{cardApplySent ? "✓ 已收到申辦意願，將由專人與您聯繫" : "立即申辦永豐幣倍卡"}</button>
+              }}>{cardApplySent ? "✓ 已為您開啟申辦頁面，可再次點擊重新開啟" : "立即申辦永豐幣倍卡"}</button>
             )}
           </div>
 

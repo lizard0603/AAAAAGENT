@@ -6,7 +6,19 @@ export const fmt = (n: number, d = 0) =>
 export const CCY_SYMBOL: Record<CurrencyCode, string> = {
   TWD: "NT$",
   USD: "US$",
+  GBP: "£",
+  HKD: "HK$",
+  CHF: "CHF",
+  AUD: "A$",
+  SGD: "S$",
   JPY: "¥",
+  SEK: "SEK",
+  CAD: "C$",
+  ZAR: "R",
+  EUR: "€",
+  NZD: "NZ$",
+  CNY: "¥",
+  CNH: "¥",
 };
 
 // 匯率本身該顯示到第幾位小數（JPY 是「每 1 圓兌台幣」，數字量級小，位數要多一些；

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
+import { CCY_LABEL, CCY_FLAG } from "../data/currencies";
+import { SETTLEMENT_PURPOSES, DEFAULT_SETTLEMENT_PURPOSE } from "../data/settlementPurpose";
+import { CurrencyPicker } from "./CurrencyPicker";
 import type { CurrencyCode, FxDatabase, FxOrder, TravelFxHandoff } from "../types/fx";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
-
-const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "人民幣" };
-const CCY_FLAG: Record<string, string> = { USD: "🇺🇸", JPY: "🇯🇵", CNY: "🇨🇳" };
 
 const MODE_HINT: Record<1 | 2 | 3, string> = {
   1: "只填了目標匯率：達到（或優於）這個價位，換匯守衛將授權即執行。",
@@ -17,12 +17,16 @@ const MODE_HINT: Record<1 | 2 | 3, string> = {
 export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSave: (order: FxOrder) => void; go: (s: string) => void; prefill?: TravelFxHandoff | null }) {
   const ccyOptions = Object.keys(db.fxRates);
   const [ccy, setCcy] = useState<CurrencyCode>(prefill?.targetCcy ?? ccyOptions[0] ?? "USD");
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [fxAmount, setFxAmount] = useState(prefill ? String(prefill.suggestedAmountForeign) : "");
   const [targetRate, setTargetRate] = useState("");
   const [windowStart, setWindowStart] = useState(prefill?.windowStart ?? "");
   const [windowEnd, setWindowEnd] = useState(prefill?.windowEnd ?? "");
   const [note, setNote] = useState(prefill?.note ?? "");
+  // 結匯性質——先在這裡填好，換匯頁／再次確認頁直接沿用，不用重填一次
+  // （見 types/fx.ts FxOrder.settlementPurpose 的說明）。
+  const [purpose, setPurpose] = useState(prefill?.settlementPurpose ?? DEFAULT_SETTLEMENT_PURPOSE);
   const [error, setError] = useState("");
 
   const rate = db.fxRates[ccy];
@@ -61,11 +65,15 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
       window_start: hasWindow ? windowStart : undefined,
       window_end: hasWindow ? windowEnd : undefined,
       note: note.trim() || undefined,
+      settlementPurpose: purpose,
     });
   }
 
   return (
-    <div style={{ height: "100%", overflowY: "auto", background: C.lightBg }}>
+    <div style={{ height: "100%", overflowY: "auto", background: C.lightBg, position: "relative" }}>
+      {pickerOpen && (
+        <CurrencyPicker title="要換的幣別" value={ccy} onSelect={setCcy} onClose={() => setPickerOpen(false)} />
+      )}
       <div style={{ display: "flex", alignItems: "center", padding: "14px 18px" }}>
         <span onClick={() => go("home")} style={{ cursor: "pointer", color: C.gold, fontSize: 26 }}>‹</span>
         <span style={{ flex: 1, textAlign: "center", fontSize: 20, fontWeight: 800, color: C.lightInk }}>設定換匯守衛</span>
@@ -85,19 +93,35 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
         </div>
       )}
 
-      {/* currency */}
+      {/* currency — 可點擊調整，涵蓋永豐承作的全部幣別（見 CurrencyPicker） */}
       <div style={{ padding: "18px 18px 0" }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>要換的幣別</div>
-        <div style={{ display: "flex", gap: 10 }}>
-          {ccyOptions.map(c => (
-            <button key={c} onClick={() => setCcy(c)} style={{
-              flex: 1, border: `1px solid ${c === ccy ? C.goldDeep : C.lightLine}`, borderRadius: 10, padding: "12px 0",
-              background: c === ccy ? "#fbf2df" : "#fff", cursor: "pointer",
-              color: c === ccy ? C.goldDeep : C.lightInk, fontSize: 15, fontWeight: 700,
-            }}>{CCY_FLAG[c] ?? "💱"} {CCY_LABEL[c] ?? c}</button>
-          ))}
+        <div onClick={() => setPickerOpen(true)} style={{
+          display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+          border: `1px solid ${C.goldDeep}`, borderRadius: 10, padding: "13px 14px", background: "#fbf2df",
+        }}>
+          <span style={{ fontSize: 20 }}>{CCY_FLAG[ccy] ?? "💱"}</span>
+          <span style={{ flex: 1, color: C.goldDeep, fontSize: 16, fontWeight: 700 }}>{CCY_LABEL[ccy] ?? ccy}</span>
+          <Icon d={P.chevDown} size={14} color={C.goldDeep} />
         </div>
         <div style={{ marginTop: 8, fontSize: 12.5, color: C.lightDim }}>目前 {CCY_LABEL[ccy] ?? ccy} 買入價 {rate?.bank_sell}，20 日均價 {rate?.ma20}</div>
+      </div>
+
+      {/* 結匯性質——先在這裡選好，換匯頁／再次確認頁會直接沿用這筆委託的設定 */}
+      <div style={{ padding: "18px 18px 0" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>結匯性質</div>
+        <div style={{ position: "relative" }}>
+          <select value={purpose} onChange={e => setPurpose(e.target.value)} style={{
+            width: "100%", appearance: "none", cursor: "pointer",
+            border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 34px 13px 14px",
+            background: "#fff", color: C.lightInk, fontSize: 14, fontWeight: 600,
+          }}>
+            {SETTLEMENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+          <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+            <Icon d={P.chevDown} size={13} color={C.lightDim} />
+          </div>
+        </div>
       </div>
 
       {/* amount */}

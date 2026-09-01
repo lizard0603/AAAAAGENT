@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
-import { fmt, rateDecimals } from "../data/format";
+import { fmt, rateDecimals, CCY_SYMBOL } from "../data/format";
+import { CCY_LABEL, CCY_FLAG } from "../data/currencies";
+import { DEFAULT_SETTLEMENT_PURPOSE } from "../data/settlementPurpose";
+import { CurrencyPicker } from "./CurrencyPicker";
 import type { CurrencyCode, FxDatabase, Opportunity, PendingExchange } from "../types/fx";
 
-const CCY_LABEL: Record<string, string> = { USD: "美元", JPY: "日圓", CNY: "人民幣" };
-const CCY_FLAG: Record<string, string> = { USD: "🇺🇸", JPY: "🇯🇵", CNY: "🇨🇳" };
 const QUOTE_SECONDS = 90;
 
 // 「交易日期」要顯示真正的今天，不是 db.today（那是驅動委託時間窗/到期判斷的示範時鐘，
@@ -37,12 +38,16 @@ export function ExchangeScreen({ db, opp, go, onConfirm }: {
   // db.fxWatch[0] 可能不存在 —— 使用者可以直接從首頁匯率卡的「立即換匯」進來，
   // 這時還沒有任何換匯守衛委託，畫面要能退回成一般手動換匯表單，不能整頁掛掉。
   const order = db.fxWatch[0];
-  const ccy = order?.target_ccy ?? (Object.keys(db.fxRates)[0] as CurrencyCode) ?? "USD";
+  // 幣別可以點擊調整（見 CurrencyPicker）——委託／預設值只當「初始值」，使用者
+  // 改選其他幣別後就以使用者選的為準，不會被 order 蓋回去。
+  const [ccy, setCcy] = useState<CurrencyCode>(order?.target_ccy ?? (Object.keys(db.fxRates)[0] as CurrencyCode) ?? "USD");
+  const [pickerOpen, setPickerOpen] = useState(false);
   const ccyLabel = CCY_LABEL[ccy] ?? ccy;
   const ccyFlag = CCY_FLAG[ccy] ?? "💱";
   const rate = db.fxRates[ccy];
   const decimals = rateDecimals(ccy);
   const boardRate = rate.bank_sell; // 牌告匯率（本行標準買入價，見 types/fx.ts 說明）
+  const settlementPurpose = order?.settlementPurpose ?? DEFAULT_SETTLEMENT_PURPOSE;
 
   const agentFilled = opp.state !== "none" && order != null;
   const [twdAmt, setTwdAmt] = useState(agentFilled ? String(order!.amount_twd) : "");
@@ -73,11 +78,12 @@ export function ExchangeScreen({ db, opp, go, onConfirm }: {
     }, 900);
   }
 
-  // 代理人已預填金額（從「一鍵授權並執行」跳轉過來）時，一進頁面就先敲一次價。
+  // 代理人已預填金額（從「一鍵授權並執行」跳轉過來）時，一進頁面就先敲一次價；
+  // 使用者改選幣別（見 CurrencyPicker）時，牌告匯率跟著換了，也要重新敲價。
   useEffect(() => {
     if (twdAmt) requestQuote(twdAmt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ccy]);
 
   // 倒數計時：報價效期內每秒遞減，歸零就標記為過期，停止繼續倒數。
   useEffect(() => {
@@ -101,7 +107,10 @@ export function ExchangeScreen({ db, opp, go, onConfirm }: {
   const canSubmit = agree && quoteState === "quoted";
 
   return (
-    <div style={{ height: "100%", overflowY: "auto", background: C.lightBg }}>
+    <div style={{ height: "100%", overflowY: "auto", background: C.lightBg, position: "relative" }}>
+      {pickerOpen && (
+        <CurrencyPicker title="換成" value={ccy} onSelect={setCcy} onClose={() => setPickerOpen(false)} />
+      )}
       <div style={{ display: "flex", alignItems: "center", padding: "14px 18px" }}>
         <span onClick={() => go("home")} style={{ cursor: "pointer", color: C.gold, fontSize: 26 }}>‹</span>
         <span style={{ flex: 1, textAlign: "center", fontSize: 20, fontWeight: 800, color: C.lightInk }}>買賣外幣/轉帳</span>
@@ -160,7 +169,7 @@ export function ExchangeScreen({ db, opp, go, onConfirm }: {
       <div style={{ padding: "16px 18px 0" }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>換成</div>
         <div style={{ display: "flex", gap: 10 }}>
-          <div style={{ flex: 1, border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", display: "flex", alignItems: "center", gap: 8 }}>
+          <div onClick={() => setPickerOpen(true)} style={{ flex: 1, cursor: "pointer", border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>{ccyFlag}</span><span style={{ fontSize: 16, color: C.lightInk }}>{ccyLabel} ▾</span>
           </div>
           <div style={{ flex: 1, border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff", textAlign: "right", fontSize: 17, fontWeight: 700, color: quoteState === "quoted" ? C.lightInk : C.lightDim }}>
@@ -198,7 +207,7 @@ export function ExchangeScreen({ db, opp, go, onConfirm }: {
           <div style={{ fontSize: 11.5, color: C.lightDim, padding: "2px 0 6px" }}>此匯率為本筆交易的即時報價，效期 {QUOTE_SECONDS} 秒，逾期需重新取得。</div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
-          <b>結匯性質</b><span style={{ color: C.lightDim }}>常用申報性質 ▾</span>
+          <b>結匯性質</b><span style={{ color: C.lightDim, textAlign: "right", maxWidth: 200 }}>{settlementPurpose}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}><b>交易日期</b><span>{todayDisplay()}</span></div>
       </div>
@@ -233,7 +242,7 @@ export function ExchangeScreen({ db, opp, go, onConfirm }: {
       <div style={{ padding: "18px 18px 26px" }}>
         <button disabled={!canSubmit} onClick={() => {
           if (!canSubmit || quoteRate == null) return;
-          onConfirm({ ccy, twdAmt: Number(twdAmt), boardRate, quoteRate, convertedAmt, secondsLeft });
+          onConfirm({ ccy, twdAmt: Number(twdAmt), boardRate, quoteRate, convertedAmt, secondsLeft, settlementPurpose });
         }} style={{
           width: "100%", border: "none", borderRadius: 10, padding: "16px 0", fontSize: 18, fontWeight: 800,
           cursor: canSubmit ? "pointer" : "default",
@@ -325,7 +334,7 @@ export function ConfirmScreen({ db, pending, go, onSubmit }: {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "14px 16px", background: "#fff" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: C.lightInk }}>結匯性質</span>
-          <span style={{ fontSize: 15, color: C.lightInk, textAlign: "right", maxWidth: 180 }}>國外觀光支出（含遊學、旅行社團費）</span>
+          <span style={{ fontSize: 15, color: C.lightInk, textAlign: "right", maxWidth: 180 }}>{pending.settlementPurpose}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "14px 16px", background: "#f0eee9" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: C.lightInk }}>交易日期</span>
@@ -369,7 +378,7 @@ export function DoneScreen({ db, go, pending }: { db: FxDatabase; go: (s: string
   const order = db.fxWatch[0];
   const ccy = pending?.ccy ?? order?.target_ccy ?? (Object.keys(db.fxRates)[0] as CurrencyCode) ?? "USD";
   const ccyLabel = CCY_LABEL[ccy] ?? ccy;
-  const sym = { USD: "US$", JPY: "¥", CNY: "¥" }[ccy] ?? ccy;
+  const sym = CCY_SYMBOL[ccy] ?? ccy;
   const rate = db.fxRates[ccy];
   const decimals = rateDecimals(ccy);
   // 優先用「再次確認」時實際敲定的報價／金額——這才是真的送出去的那一筆，
