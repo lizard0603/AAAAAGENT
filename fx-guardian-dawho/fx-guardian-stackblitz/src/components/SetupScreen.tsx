@@ -2,8 +2,9 @@ import { useState } from "react";
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
 import { CCY_LABEL, CCY_FLAG } from "../data/currencies";
-import { SETTLEMENT_PURPOSES, DEFAULT_SETTLEMENT_PURPOSE } from "../data/settlementPurpose";
+import { COMMON_PURPOSES, OTHER_PURPOSES, DEFAULT_SETTLEMENT_PURPOSE } from "../data/settlementPurpose";
 import { CurrencyPicker } from "./CurrencyPicker";
+import { PurposePicker } from "./PurposePicker";
 import type { CurrencyCode, FxDatabase, FxOrder, TravelFxHandoff } from "../types/fx";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -27,8 +28,11 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
   const [windowEnd, setWindowEnd] = useState(prefill?.windowEnd ?? "");
   const [note, setNote] = useState(prefill?.note ?? "");
   // 結匯性質——先在這裡填好，換匯頁／再次確認頁直接沿用，不用重填一次
-  // （見 types/fx.ts FxOrder.settlementPurpose 的說明）。
+  // （見 types/fx.ts FxOrder.settlementPurpose 的說明）。比照永豐實際換匯頁：
+  // 先選「常用」或「其他」申報性質，再從對應清單挑一項；切換分類會清空目前的選擇。
+  const [purposeCategory, setPurposeCategory] = useState<"common" | "other">("common");
   const [purpose, setPurpose] = useState(prefill?.settlementPurpose ?? DEFAULT_SETTLEMENT_PURPOSE);
+  const [purposePickerOpen, setPurposePickerOpen] = useState(false);
   const [error, setError] = useState("");
 
   const rate = db.fxRates[ccy];
@@ -54,6 +58,7 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
     }
     if (!mode) return setError("請至少填寫「目標匯率」或「時間區間」其中一項，換匯守衛才知道何時該幫您留意。");
     if (hasWindow && windowStart > windowEnd) return setError("時間區間的結束日期不能早於開始日期。");
+    if (!purpose) return setError("請選擇結匯性質。");
     setError("");
     onSave({
       pair: `TWD→${ccy}`,
@@ -75,6 +80,15 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
     <div style={{ height: "100%", overflowY: "auto", background: C.lightBg, position: "relative" }}>
       {pickerOpen && (
         <CurrencyPicker title="要換的幣別" value={ccy} onSelect={setCcy} onClose={() => setPickerOpen(false)} />
+      )}
+      {purposePickerOpen && (
+        <PurposePicker
+          title={purposeCategory === "common" ? "常用申報性質" : "申報細項"}
+          options={purposeCategory === "common" ? COMMON_PURPOSES : OTHER_PURPOSES}
+          value={purpose}
+          onSelect={setPurpose}
+          onClose={() => setPurposePickerOpen(false)}
+        />
       )}
       <div style={{ display: "flex", alignItems: "center", padding: "14px 18px" }}>
         <span onClick={() => go("home")} style={{ cursor: "pointer", color: C.gold, fontSize: 26 }}>‹</span>
@@ -107,23 +121,6 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
           <Icon d={P.chevDown} size={14} color={C.goldDeep} />
         </div>
         <div style={{ marginTop: 8, fontSize: 12.5, color: C.lightDim }}>目前 {CCY_LABEL[ccy] ?? ccy} 買入價 {rate?.bank_sell}，20 日均價 {rate?.ma20}</div>
-      </div>
-
-      {/* 結匯性質——先在這裡選好，換匯頁／再次確認頁會直接沿用這筆委託的設定 */}
-      <div style={{ padding: "18px 18px 0" }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 10 }}>結匯性質</div>
-        <div style={{ position: "relative" }}>
-          <select value={purpose} onChange={e => setPurpose(e.target.value)} style={{
-            width: "100%", appearance: "none", cursor: "pointer",
-            border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 34px 13px 14px",
-            background: "#fff", color: C.lightInk, fontSize: 14, fontWeight: 600,
-          }}>
-            {SETTLEMENT_PURPOSES.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-            <Icon d={P.chevDown} size={13} color={C.lightDim} />
-          </div>
-        </div>
       </div>
 
       {/* amount */}
@@ -175,6 +172,41 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
             <input type="date" value={windowEnd} onChange={e => setWindowEnd(e.target.value)}
               style={{ border: "none", outline: "none", width: "100%", fontSize: 14, color: C.lightInk, background: "transparent" }} />
           </div>
+        </div>
+      </div>
+
+      {/* 結匯性質——比照永豐實際換匯頁：先選常用／其他申報性質，再挑一項申報代碼；
+          換匯頁／再次確認頁會直接沿用這筆委託的設定，不用重填。位置刻意放在備註
+          上方，不要太靠畫面上面。 */}
+      <div style={{ padding: "18px 18px 0" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.lightInk, marginBottom: 12 }}>結匯性質</div>
+        <div style={{ display: "flex", gap: 26 }}>
+          {(["common", "other"] as const).map(cat => (
+            <div key={cat} onClick={() => { setPurposeCategory(cat); setPurpose(""); }} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <span style={{
+                width: 20, height: 20, borderRadius: 10, flexShrink: 0,
+                border: `2px solid ${purposeCategory === cat ? C.goldDeep : C.lightDim}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {purposeCategory === cat && <span style={{ width: 10, height: 10, borderRadius: 5, background: C.goldDeep }} />}
+              </span>
+              <span style={{ fontSize: 15, color: C.lightInk, fontWeight: 600 }}>{cat === "common" ? "常用申報性質" : "其他申報性質"}</span>
+            </div>
+          ))}
+        </div>
+
+        {purposeCategory === "other" && (
+          <div style={{ fontSize: 13, color: C.lightDim, marginTop: 14, marginBottom: 6 }}>申報細項</div>
+        )}
+        <div onClick={() => setPurposePickerOpen(true)} style={{
+          marginTop: purposeCategory === "common" ? 14 : 0, cursor: "pointer",
+          border: `1px solid ${C.lightLine}`, borderRadius: 10, padding: "13px 14px", background: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+        }}>
+          <span style={{ fontSize: 14, color: purpose ? C.lightInk : C.lightDim, fontWeight: purpose ? 600 : 400, lineHeight: 1.5 }}>
+            {purpose || (purposeCategory === "common" ? "請選擇" : "請選擇申報性質")}
+          </span>
+          <Icon d={P.chevDown} size={13} color={C.lightDim} />
         </div>
       </div>
 
