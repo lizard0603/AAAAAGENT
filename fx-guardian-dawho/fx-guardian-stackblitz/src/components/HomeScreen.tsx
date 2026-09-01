@@ -23,7 +23,7 @@ function Spark({ data, alert }: { data: number[]; alert?: boolean }) {
   );
 }
 
-export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void }) {
+export function HomeScreen({ db, opp, go, tripReportReady }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void; tripReportReady?: boolean }) {
   const twd = db.accounts.find(a => a.ccy === "TWD")?.balance ?? 0;
   const configured = db.fxWatch.length > 0;
   return (
@@ -69,14 +69,15 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
         </div>
       </div>
 
-      {/* promo pill — 旅遊代理人觸發入口，偵測到旅遊訊號時導向 TravelAgentScreen */}
-      <div onClick={() => go("travelAgent")} style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+      {/* promo pill — 平常是旅遊代理人觸發入口；Demo 控制台模擬「旅遊已結束」情境時，
+          換成「收支報告已完成」的文案與圖示，點進去才是完整的 TripReportScreen。 */}
+      <div onClick={() => go(tripReportReady ? "tripReport" : "travelAgent")} style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
         <span style={{ color: C.text, fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-          <Icon d={P.plane} size={16} color={C.gold} fill={C.gold} sw={0} />
-          偵測到您有旅遊消費紀錄，設定旅遊小助手
+          <Icon d={tripReportReady ? P.chart : P.plane} size={16} color={C.gold} fill={tripReportReady ? "none" : C.gold} sw={tripReportReady ? 1.8 : 0} />
+          {tripReportReady ? "旅程結束，您的收支報告已經準備好了" : "偵測到您有旅遊消費紀錄，設定旅遊小助手"}
         </span>
         <span style={{ color: C.gold, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-          立即設定 <span style={{ background: C.gold, color: C.ink, borderRadius: 10, width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>›</span>
+          {tripReportReady ? "立即查看" : "立即設定"} <span style={{ background: C.gold, color: C.ink, borderRadius: 10, width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>›</span>
         </span>
       </div>
 

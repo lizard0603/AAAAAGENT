@@ -76,6 +76,40 @@ export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) =
         <span style={{ fontSize: 16, fontWeight: 800, color: C.goldLt }}>+NT$ {fmt(r.cashbackTwd)}</span>
       </div>
 
+      {/* 一、換匯成本回顧——單一數字、視覺乾淨，直接證明換匯守衛的價值，優先往上排 */}
+      <div style={{ padding: "20px 18px 0" }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>換匯成本回顧</div>
+        <div style={{
+          background: `linear-gradient(135deg,${C.bgDeep},#241d10)`, border: `1px solid ${C.goldDeep}`, borderRadius: 14,
+          padding: "16px 16px", display: "flex", alignItems: "center", gap: 12,
+        }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(201,161,90,.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Icon d={P.shield} size={20} color={C.goldLt} />
+          </div>
+          <div>
+            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>這趟透過換匯守衛換匯，較一般即期匯率</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.goldLt, marginTop: 2 }}>為您多換得約 NT$ {fmt(r.fxSavingsTwd)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 二、回饋最大化亮點——同樣是單一數字的價值亮點，緊接在換匯成本回顧後面 */}
+      <div style={{ padding: "20px 18px 0" }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>回饋最大化亮點</div>
+        <div style={{
+          background: `linear-gradient(135deg,${C.bgDeep},#241d10)`, border: `1px solid ${C.goldDeep}`, borderRadius: 16,
+          padding: "22px 18px", textAlign: "center",
+        }}>
+          <img src={cardArt} alt="" style={{ width: 52, height: 33, borderRadius: 6, objectFit: "cover", margin: "0 auto 12px" }} />
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>這趟用永豐幣倍卡海外刷卡，</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: C.goldLt, marginTop: 4 }}>為您賺回 NT$ {fmt(r.cashbackTwd)}</div>
+          <div style={{
+            marginTop: 10, display: "inline-block", background: "rgba(201,161,90,.18)", borderRadius: 20,
+            padding: "6px 14px", fontSize: 12.5, color: C.goldLt, fontWeight: 700,
+          }}>約等於{r.cashbackEquivalent}</div>
+        </div>
+      </div>
+
       {/* 類別拆分 */}
       <div style={{ padding: "20px 18px 0" }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>消費類別拆分</div>
@@ -117,40 +151,6 @@ export function TripReportScreen({ db, go }: { db: FxDatabase; go: (s: string) =
               <span style={{ color: C.goldLt, fontSize: 14, fontWeight: 700 }}>NT$ {fmt(m.amountTwd)}</span>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* 一、換匯成本回顧——單一數字、視覺乾淨，直接證明換匯守衛的價值，優先往上排 */}
-      <div style={{ padding: "20px 18px 0" }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>換匯成本回顧</div>
-        <div style={{
-          background: `linear-gradient(135deg,${C.bgDeep},#241d10)`, border: `1px solid ${C.goldDeep}`, borderRadius: 14,
-          padding: "16px 16px", display: "flex", alignItems: "center", gap: 12,
-        }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(201,161,90,.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <Icon d={P.shield} size={20} color={C.goldLt} />
-          </div>
-          <div>
-            <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>這趟透過換匯守衛換匯，較一般即期匯率</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.goldLt, marginTop: 2 }}>為您多換得約 NT$ {fmt(r.fxSavingsTwd)}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 二、回饋最大化亮點——同樣是單一數字的價值亮點，緊接在換匯成本回顧後面 */}
-      <div style={{ padding: "20px 18px 0" }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>回饋最大化亮點</div>
-        <div style={{
-          background: `linear-gradient(135deg,${C.bgDeep},#241d10)`, border: `1px solid ${C.goldDeep}`, borderRadius: 16,
-          padding: "22px 18px", textAlign: "center",
-        }}>
-          <img src={cardArt} alt="" style={{ width: 52, height: 33, borderRadius: 6, objectFit: "cover", margin: "0 auto 12px" }} />
-          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>這趟用永豐幣倍卡海外刷卡，</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: C.goldLt, marginTop: 4 }}>為您賺回 NT$ {fmt(r.cashbackTwd)}</div>
-          <div style={{
-            marginTop: 10, display: "inline-block", background: "rgba(201,161,90,.18)", borderRadius: 20,
-            padding: "6px 14px", fontSize: 12.5, color: C.goldLt, fontWeight: 700,
-          }}>約等於{r.cashbackEquivalent}</div>
         </div>
       </div>
 

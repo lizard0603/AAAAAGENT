@@ -16,7 +16,9 @@ const MODE_HINT: Record<1 | 2 | 3, string> = {
 
 export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSave: (order: FxOrder) => void; go: (s: string) => void; prefill?: TravelFxHandoff | null }) {
   const ccyOptions = Object.keys(db.fxRates);
-  const [ccy, setCcy] = useState<CurrencyCode>(prefill?.targetCcy ?? ccyOptions[0] ?? "USD");
+  // 沒有預填資料（不是從旅遊小助手帶過來）時，預設幣別固定用日圓——
+  // 換日圓是這個 demo 情境裡最常見的換匯需求。
+  const [ccy, setCcy] = useState<CurrencyCode>(prefill?.targetCcy ?? (db.fxRates.JPY ? "JPY" : ccyOptions[0] ?? "USD"));
   const [pickerOpen, setPickerOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [fxAmount, setFxAmount] = useState(prefill ? String(prefill.suggestedAmountForeign) : "");

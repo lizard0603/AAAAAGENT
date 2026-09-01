@@ -27,6 +27,9 @@ export default function App() {
   // 幣別／金額／觀察區間。只在透過 handoffToGuardian 進入 setup 時才有值——
   // 其他管道（頂部導覽、「新增一筆」等）進 setup 一律由 go() 清空，避免殘留舊建議。
   const [setupPrefill, setSetupPrefill] = useState<TravelFxHandoff | null>(null);
+  // Demo 控制台「旅遊已結束」情境用——不直接跳去 tripReport，而是先讓首頁的
+  // promo pill 換成「查看收支報告」文案，使用者自己點進去，比較貼近真實情境。
+  const [tripReportReady, setTripReportReady] = useState(false);
   const db = useMemo(() => ({ ...mockDb, fxWatch }), [fxWatch]);
   // Per-order opportunity states — the customer can have more than one order watched at once.
   const opps = useMemo(() => fxWatch.map(order => detectOpportunity({ ...mockDb, fxWatch: [order] })), [fxWatch]);
@@ -82,7 +85,7 @@ export default function App() {
           </div>
 
           <div style={S.screen}>
-            {screen === "home" && <HomeScreen db={db} opp={opp} go={go} />}
+            {screen === "home" && <HomeScreen db={db} opp={opp} go={go} tripReportReady={tripReportReady} />}
             {screen === "trend" && <TrendScreen db={db} opp={opp} go={go} />}
             {screen === "exchange" && (
               <ExchangeScreen db={db} opp={opp} go={go} onConfirm={(p) => { setPendingExchange(p); setScreen("confirm"); }} />
@@ -142,8 +145,8 @@ export default function App() {
           <DevScenarioPanel
             orderCount={fxWatch.length}
             onApply={saveOrder}
-            onReset={() => { setFxWatch([]); setActiveIdx(0); setScreen("home"); }}
-            onViewTripReport={() => go("tripReport")}
+            onReset={() => { setFxWatch([]); setActiveIdx(0); setTripReportReady(false); setScreen("home"); }}
+            onViewTripReport={() => { setTripReportReady(true); go("home"); }}
           />
         </div>
       </div>

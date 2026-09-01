@@ -1,7 +1,6 @@
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { C } from "../styles/theme";
-import { Icon, P, WithdrawIcon } from "./icons";
+import { Icon, P } from "./icons";
 import { fmt } from "../data/format";
 import { detectTravelSignal } from "../agent/travelSignal";
 import { SINOPAC_CURRENCIES } from "../data/currencies";
@@ -54,25 +53,19 @@ const DEFAULT_BUDGET: Record<string, number> = { JPY: 2000, KR: 2200, USD: 5000,
 
 const ROUND_TO: Record<string, number> = { JPY: 1000, CNY: 100, CNH: 100 };
 
+// 每段文案後面都補一句簡短的權益提示（機場貴賓室、旅遊不便險等），取代原本
+// 另外做一排圖示的「旅遊權益」區塊——用文字帶過就好，版面才不會太重。
 const CARD_PITCH: Record<string, string> = {
-  JPY: "日本當地消費、日圓提領都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換日圓還有專屬結匯優惠。",
-  USD: "美國消費回饋最高，用「永豐幣倍卡」在 DAWHO app 換美元還有專屬結匯優惠。",
-  EUR: "歐元區消費享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換歐元還有專屬結匯優惠。",
+  JPY: "日本當地消費、日圓提領都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換日圓還有專屬結匯優惠，另享機場貴賓室、旅遊不便險等多項旅遊禮遇。",
+  USD: "美國消費回饋最高，用「永豐幣倍卡」在 DAWHO app 換美元還有專屬結匯優惠，另享機場貴賓室、旅遊不便險等多項旅遊禮遇。",
+  EUR: "歐元區消費享加碼回饋，用「永豐幣倍卡」在 DAWHO app 換歐元還有專屬結匯優惠，另享機場貴賓室、旅遊不便險等多項旅遊禮遇。",
 };
-const DEFAULT_CARD_PITCH = "不管去哪裡，海外消費都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 依實際幣別辦理結匯還有專屬優惠。";
+const DEFAULT_CARD_PITCH = "不管去哪裡，海外消費都享加碼回饋，用「永豐幣倍卡」在 DAWHO app 依實際幣別辦理結匯還有專屬優惠，另享機場貴賓室、旅遊不便險等多項旅遊禮遇。";
 
 const CARD_MODES = [
   { id: "spend", label: "海外刷卡", icon: P.card, stat: "3.5%", statLabel: "現金回饋" },
   { id: "atm", label: "海外提款", icon: P.swap, stat: "0元", statLabel: "提領手續費" },
 ] as const;
-
-// 旅遊權益小格——次一級的資訊，圖示故意縮小、標籤用淺色，不跟右側回饋數字搶視覺。
-const CARD_PERKS: { label: string; sub?: string; renderIcon: (size: number, color: string) => ReactNode }[] = [
-  { label: "機場貴賓室", sub: "（達標享）", renderIcon: (size, color) => <Icon d={P.plane} size={size} color={color} fill={color} sw={0} /> },
-  { label: "旅遊不便險", renderIcon: (size, color) => <Icon d={P.shield} size={size} color={color} /> },
-  { label: "外幣/雙幣扣款", renderIcon: (size, color) => <Icon d={P.swap} size={size} color={color} /> },
-  { label: "日圓提領", renderIcon: (size, color) => <WithdrawIcon size={size} color={color} /> },
-];
 
 function getRate(db: FxDatabase, dest: Destination): number {
   return db.fxRates[dest.ccy]?.bank_sell ?? 1;
@@ -108,7 +101,6 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
   const [reportEnabled, setReportEnabled] = useState(false);
 
   const dest = ALL_DESTINATIONS.find(d => d.id === destId) ?? DESTINATIONS[0];
-  const isOtherCountry = OTHER_COUNTRIES.some(d => d.id === destId);
   // 目的地的幣別現在一定對得到 db.fxRates（永豐支援的目的地用實際幣別，
   // 「其他國家」一律預設美金），這裡留著是保險，避免萬一資料兜不起來時整頁掛掉。
   const destSupported = !!dest.ccy && !!db.fxRates[dest.ccy];
@@ -178,38 +170,33 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
         </div>
       </div>
 
-      {/* 設定區 */}
+      {/* 設定區——目的地改成單一下拉選單，涵蓋永豐支援的幣別＋其他常見旅遊國家，
+          不再用一排按鈕塞 13 個目的地。 */}
       <div style={{ padding: "20px 18px 0" }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>目的地</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {DESTINATIONS.map(d => (
-            <button key={d.id} onClick={() => selectDestination(d.id)} style={{
-              flex: "1 0 auto", minWidth: 76, border: `1px solid ${d.id === destId ? C.goldDeep : C.line}`, borderRadius: 10, padding: "10px 0",
-              background: d.id === destId ? "rgba(201,161,90,.18)" : "transparent", cursor: "pointer",
-              color: d.id === destId ? C.goldLt : C.textDim, fontSize: 14, fontWeight: 700,
-            }}>{d.flag} {d.label}</button>
-          ))}
-        </div>
-
-        {/* 其他國家——下拉選單，涵蓋常見目的地之外的其餘國家 */}
-        <div style={{ marginTop: 8, position: "relative" }}>
+        <div style={{ position: "relative" }}>
           <select
-            value={isOtherCountry ? destId : ""}
+            value={destId}
             onChange={e => e.target.value && selectDestination(e.target.value)}
             style={{
               width: "100%", appearance: "none", cursor: "pointer",
-              border: `1px solid ${isOtherCountry ? C.goldDeep : C.line}`, borderRadius: 10, padding: "10px 34px 10px 14px",
-              background: isOtherCountry ? "rgba(201,161,90,.18)" : "transparent",
-              color: isOtherCountry ? C.goldLt : C.textDim, fontSize: 14, fontWeight: 700, colorScheme: "dark",
+              border: `1px solid ${C.goldDeep}`, borderRadius: 10, padding: "12px 34px 12px 14px",
+              background: "rgba(201,161,90,.18)", color: C.goldLt, fontSize: 15, fontWeight: 700, colorScheme: "dark",
             }}
           >
-            <option value="" disabled>🌍 選擇其他國家</option>
-            {OTHER_COUNTRIES.map(c => (
-              <option key={c.id} value={c.id}>{c.flag} {c.label}</option>
-            ))}
+            <optgroup label="永豐支援當地幣別">
+              {DESTINATIONS.map(d => (
+                <option key={d.id} value={d.id}>{d.flag} {d.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="其他國家（預設概算美金）">
+              {OTHER_COUNTRIES.map(c => (
+                <option key={c.id} value={c.id}>{c.flag} {c.label}</option>
+              ))}
+            </optgroup>
           </select>
-          <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-            <Icon d={P.chevDown} size={13} color={isOtherCountry ? C.goldLt : C.textDim} />
+          <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+            <Icon d={P.chevDown} size={13} color={C.goldLt} />
           </div>
         </div>
       </div>
@@ -304,28 +291,6 @@ export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (
                   <div style={{ fontSize: 16, fontWeight: 800, color: C.goldLt }}>{activeCardMode.stat}</div>
                   <div style={{ fontSize: 9, color: C.textDim, marginTop: 1 }}>{activeCardMode.statLabel}</div>
                 </div>
-              </div>
-            </div>
-
-            {/* 旅遊權益——跨整個卡片寬度四等分，層級比左上文案／右側回饋數字低一階 */}
-            <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
-              <div style={{ fontSize: 10.5, color: C.textDim, fontWeight: 700, marginBottom: 9, letterSpacing: .3 }}>本卡旅遊權益</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {CARD_PERKS.map(perk => (
-                  <div key={perk.label} style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 8, background: "rgba(201,161,90,.10)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      {perk.renderIcon(13, C.goldLt)}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                      <span style={{ fontSize: 9.5, color: C.textDim, fontWeight: 600, textAlign: "center", lineHeight: 1.3, whiteSpace: "nowrap" }}>
-                        {perk.label}
-                      </span>
-                      <span style={{ fontSize: 8, color: C.textDim, opacity: .65, lineHeight: 1.3, whiteSpace: "nowrap" }}>
-                        {perk.sub ?? " "}
-                      </span>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
 
