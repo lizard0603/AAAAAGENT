@@ -84,8 +84,12 @@ interface Suggestion {
   foreignAmount: number | null; // null = 「其他」，沒有幣別可概算
 }
 
-export function TravelAgentScreen({ db, go, onHandoff }: { db: FxDatabase; go: (s: string) => void; onHandoff: (handoff: TravelFxHandoff) => void }) {
-  const signal = detectTravelSignal(db.cardTransactions);
+export function TravelAgentScreen({ db, go, onHandoff, cameFromSignal }: {
+  db: FxDatabase; go: (s: string) => void; onHandoff: (handoff: TravelFxHandoff) => void; cameFromSignal: boolean;
+}) {
+  // 只有從首頁「偵測到您有旅遊消費紀錄」pill 進來才提這筆偵測到的消費；
+  // 使用者自己點右上角飛機圖示主動打開，就不用再提「偵測到」，直接進目的地設定。
+  const signal = cameFromSignal ? detectTravelSignal(db.cardTransactions) : null;
 
   // 預設目的地固定用日本——這是這個 demo 情境（signal 偵測、CARD_PITCH 文案）
   // 一直以來預設展示的目的地，不要因為幣別清單的排序而跟著變動。

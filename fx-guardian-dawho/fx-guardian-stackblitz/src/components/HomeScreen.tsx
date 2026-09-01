@@ -23,7 +23,9 @@ function Spark({ data, alert }: { data: number[]; alert?: boolean }) {
   );
 }
 
-export function HomeScreen({ db, opp, go, tripReportReady }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void; tripReportReady?: boolean }) {
+export function HomeScreen({ db, opp, go, tripReportReady, onOpenTravelAgent }: {
+  db: FxDatabase; opp: Opportunity; go: (s: string) => void; tripReportReady?: boolean; onOpenTravelAgent: (fromSignal: boolean) => void;
+}) {
   const twd = db.accounts.find(a => a.ccy === "TWD")?.balance ?? 0;
   const configured = db.fxWatch.length > 0;
   return (
@@ -38,8 +40,9 @@ export function HomeScreen({ db, opp, go, tripReportReady }: { db: FxDatabase; o
           <div style={{ display: "flex", gap: 18 }}>
             <Icon d={P.bell} size={23} color={C.ink} />
             <Icon d={P.headset} size={23} color={C.ink} />
-            {/* 旅遊代理人快速入口——跟下面的「偵測到您有旅遊消費紀錄」pill 同一個目的地 */}
-            <span onClick={() => go("travelAgent")} style={{ cursor: "pointer", display: "flex" }}>
+            {/* 旅遊代理人快速入口——使用者自己主動點進來，開場白不用再提「偵測到」，
+                跟下面「偵測到您有旅遊消費紀錄」pill 進來的情境分開處理 */}
+            <span onClick={() => onOpenTravelAgent(false)} style={{ cursor: "pointer", display: "flex" }}>
               <Icon d={P.plane} size={23} color={C.ink} fill={C.ink} sw={0} />
             </span>
           </div>
@@ -71,7 +74,7 @@ export function HomeScreen({ db, opp, go, tripReportReady }: { db: FxDatabase; o
 
       {/* promo pill — 平常是旅遊代理人觸發入口；Demo 控制台模擬「旅遊已結束」情境時，
           換成「收支報告已完成」的文案與圖示，點進去才是完整的 TripReportScreen。 */}
-      <div onClick={() => go(tripReportReady ? "tripReport" : "travelAgent")} style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+      <div onClick={() => tripReportReady ? go("tripReport") : onOpenTravelAgent(true)} style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
         <span style={{ color: C.text, fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
           <Icon d={tripReportReady ? P.chart : P.plane} size={16} color={C.gold} fill={tripReportReady ? "none" : C.gold} sw={tripReportReady ? 1.8 : 0} />
           {tripReportReady ? "旅程結束，您的收支報告已經準備好了" : "偵測到您有旅遊消費紀錄，設定旅遊小助手"}

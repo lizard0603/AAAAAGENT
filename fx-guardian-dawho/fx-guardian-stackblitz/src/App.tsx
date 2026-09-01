@@ -46,6 +46,14 @@ export default function App() {
     setSetupPrefill(null);
     setScreen(s === "agent" && fxWatch.length === 0 ? "setup" : (s as Screen));
   };
+  // 旅遊小助手的開場白要分兩種入口：從首頁「偵測到您有旅遊消費紀錄」pill 進來，
+  // 才提偵測到的那筆消費；使用者自己點右上角飛機圖示主動打開，就不用再提「偵測到」，
+  // 直接進目的地設定即可。
+  const [travelAgentFromSignal, setTravelAgentFromSignal] = useState(false);
+  const openTravelAgent = (fromSignal: boolean) => {
+    setTravelAgentFromSignal(fromSignal);
+    go("travelAgent");
+  };
   const handoffToGuardian = (handoff: TravelFxHandoff) => {
     setSetupPrefill(handoff);
     setScreen("setup");
@@ -85,7 +93,7 @@ export default function App() {
           </div>
 
           <div style={S.screen}>
-            {screen === "home" && <HomeScreen db={db} opp={opp} go={go} tripReportReady={tripReportReady} />}
+            {screen === "home" && <HomeScreen db={db} opp={opp} go={go} tripReportReady={tripReportReady} onOpenTravelAgent={openTravelAgent} />}
             {screen === "trend" && <TrendScreen db={db} opp={opp} go={go} />}
             {screen === "exchange" && (
               <ExchangeScreen db={db} opp={opp} go={go} onConfirm={(p) => { setPendingExchange(p); setScreen("confirm"); }} />
@@ -108,7 +116,7 @@ export default function App() {
             )}
             {screen === "setup" && <SetupScreen db={db} onSave={saveOrder} go={go} prefill={setupPrefill} />}
             {screen === "card" && <CardScreen db={db} go={go} />}
-            {screen === "travelAgent" && <TravelAgentScreen db={db} go={go} onHandoff={handoffToGuardian} />}
+            {screen === "travelAgent" && <TravelAgentScreen db={db} go={go} onHandoff={handoffToGuardian} cameFromSignal={travelAgentFromSignal} />}
             {screen === "tripReport" && <TripReportScreen db={db} go={go} />}
           </div>
 
