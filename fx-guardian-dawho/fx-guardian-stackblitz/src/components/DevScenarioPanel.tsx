@@ -18,21 +18,21 @@ const STATE_BADGE: Record<ScenarioState, { label: string; bg: string; fg: string
 };
 
 const SCENARIOS: { group: string; label: string; state: ScenarioState; order: FxOrder }[] = [
-  { group: "模式一 · 觸價執行", label: "尚未達門檻", state: "none",
+  { group: "到價自動換", label: "尚未達門檻", state: "none",
     order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 1, targetRate: 32.0 } },
-  { group: "模式一 · 觸價執行", label: "已達門檻，授權即執行", state: "execute",
+  { group: "到價自動換", label: "已達門檻，授權即執行", state: "execute",
     order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 1, targetRate: 32.25 } },
-  { group: "模式二 · 區間找低點", label: "AI 找到相對低點，建議換匯", state: "advise",
+  { group: "區間找低點", label: "AI 找到相對低點，建議換匯", state: "advise",
     order: { pair: "TWD→JPY", target_ccy: "JPY", amount_twd: 1000000, mode: 2, window_start: "2026-07-01", window_end: "2026-07-31" } },
-  { group: "模式二 · 區間找低點", label: "區間到期，保底執行", state: "execute",
+  { group: "區間找低點", label: "區間到期，保底執行", state: "execute",
     order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 2, window_start: "2026-07-01", window_end: "2026-07-10" } },
-  { group: "模式三 · 門檻＋區間", label: "未觸價、區間未到期", state: "none",
+  { group: "智能提醒", label: "未觸價、區間未到期", state: "none",
     order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 3, targetRate: 32.0, window_start: "2026-07-01", window_end: "2026-07-31" } },
-  { group: "模式三 · 門檻＋區間", label: "已觸價但區間未到期，示警建議", state: "advise",
+  { group: "智能提醒", label: "已觸價但區間未到期，示警建議", state: "advise",
     order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 3, targetRate: 32.25, window_start: "2026-07-01", window_end: "2026-07-31" } },
-  { group: "模式三 · 門檻＋區間", label: "已觸價且區間到期，執行", state: "execute",
+  { group: "智能提醒", label: "已觸價且區間到期，執行", state: "execute",
     order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 3, targetRate: 32.25, window_start: "2026-07-01", window_end: "2026-07-10" } },
-  { group: "模式三 · 門檻＋區間", label: "未觸價但區間到期，保底執行", state: "execute",
+  { group: "智能提醒", label: "未觸價但區間到期，保底執行", state: "execute",
     order: { pair: "TWD→USD", target_ccy: "USD", amount_twd: 1000000, mode: 3, targetRate: 32.0, window_start: "2026-07-01", window_end: "2026-07-10" } },
 ];
 

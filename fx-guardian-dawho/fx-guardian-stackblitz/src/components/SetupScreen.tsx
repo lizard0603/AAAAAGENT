@@ -189,7 +189,7 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
       {mode && (
         <div style={{ margin: "18px 18px 0", background: "#fbf2df", border: `1px solid ${C.gold}`, borderRadius: 12, padding: "12px 14px" }}>
           <div style={{ fontSize: 12.5, fontWeight: 800, color: C.goldDeep, marginBottom: 4 }}>
-            {mode === 1 ? "模式一 · 觸價執行" : mode === 2 ? "模式二 · 區間找低點" : "模式三 · 門檻＋區間"}
+            {mode === 1 ? "到價自動換" : mode === 2 ? "區間找低點" : "智能提醒"}
           </div>
           <div style={{ fontSize: 12, color: "#6a5a30", lineHeight: 1.6 }}>{MODE_HINT[mode]}</div>
         </div>
