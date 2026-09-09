@@ -1,5 +1,6 @@
 import { C } from "../styles/theme";
 import { Icon, P } from "./icons";
+import tierSeal from "../assets/tier-seal.png";
 import type { FxDatabase, Opportunity } from "../types/fx";
 
 const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -22,8 +23,11 @@ function Spark({ data, alert }: { data: number[]; alert?: boolean }) {
   );
 }
 
-export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; go: (s: string) => void }) {
+export function HomeScreen({ db, opp, go, tripReportReady, onOpenTravelAgent }: {
+  db: FxDatabase; opp: Opportunity; go: (s: string) => void; tripReportReady?: boolean; onOpenTravelAgent: (fromSignal: boolean) => void;
+}) {
   const twd = db.accounts.find(a => a.ccy === "TWD")?.balance ?? 0;
+  const configured = db.fxWatch.length > 0;
   return (
     <div style={{ height: "100%", overflowY: "auto", background: C.bg }}>
       {/* marble header */}
@@ -36,12 +40,17 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
           <div style={{ display: "flex", gap: 18 }}>
             <Icon d={P.bell} size={23} color={C.ink} />
             <Icon d={P.headset} size={23} color={C.ink} />
+            {/* 旅遊代理人快速入口——使用者自己主動點進來，開場白不用再提「偵測到」，
+                跟下面「偵測到您有旅遊消費紀錄」pill 進來的情境分開處理 */}
+            <span onClick={() => onOpenTravelAgent(false)} style={{ cursor: "pointer", display: "flex" }}>
+              <Icon d={P.plane} size={23} color={C.ink} fill={C.ink} sw={0} />
+            </span>
           </div>
         </div>
         <div style={{ display: "flex", gap: 26, marginTop: 20, fontSize: 20, color: "#9b9186", fontWeight: 500 }}>
           <span>投資</span>
           <span style={{ color: C.goldDeep, fontWeight: 800, fontSize: 24 }}>存款</span>
-          <span>信用卡</span>
+          <span onClick={() => go("card")} style={{ cursor: "pointer" }}>信用卡</span>
           <span>證券</span>
           <span>貸款</span>
         </div>
@@ -63,19 +72,23 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
         </div>
       </div>
 
-      {/* promo pill */}
-      <div style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ color: C.text, fontSize: 15, fontWeight: 600 }}>定期定額限時申購手續費 0 元起</span>
-        <span style={{ color: C.gold, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-          立即了解 <span style={{ background: C.gold, color: C.ink, borderRadius: 10, width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>›</span>
+      {/* promo pill — 平常是旅遊代理人觸發入口；Demo 控制台模擬「旅遊已結束」情境時，
+          換成「收支報告已完成」的文案與圖示，點進去才是完整的 TripReportScreen。 */}
+      <div onClick={() => tripReportReady ? go("tripReport") : onOpenTravelAgent(true)} style={{ margin: "18px 18px 0", border: `1px solid ${C.gold}`, borderRadius: 30, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+        <span style={{ color: C.text, fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icon d={tripReportReady ? P.chart : P.plane} size={16} color={C.gold} fill={tripReportReady ? "none" : C.gold} sw={tripReportReady ? 1.8 : 0} />
+          {tripReportReady ? "旅程結束，您的收支報告已經準備好了" : "偵測到您有旅遊消費紀錄，設定旅遊小助手"}
+        </span>
+        <span style={{ color: C.gold, fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          {tripReportReady ? "立即查看" : "立即設定"} <span style={{ background: C.gold, color: C.ink, borderRadius: 10, width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>›</span>
         </span>
       </div>
 
       {/* tier gold card */}
       <div style={{ margin: "16px 18px 0", borderRadius: 16, overflow: "hidden", background: C.card }}>
         <div style={{ background: `linear-gradient(100deg,${C.goldDeep},${C.goldLt} 60%,${C.gold})`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 20 }}>🏵️</span>
-          <span style={{ color: C.ink, fontSize: 18, fontWeight: 800 }}>7 月等級優惠</span>
+          <img src={tierSeal} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} />
+          <span style={{ color: C.ink, fontSize: 18, fontWeight: 800 }}>9 月等級優惠</span>
           <span style={{ color: C.ink, opacity: .7 }}>ⓘ</span>
         </div>
         <div style={{ display: "flex", padding: "16px 8px" }}>
@@ -121,10 +134,10 @@ export function HomeScreen({ db, opp, go }: { db: FxDatabase; opp: Opportunity; 
         }}>
           <span style={{ display: "flex", alignItems: "center", gap: 8, color: opp.state !== "none" ? C.goldLt : C.ink, fontSize: 15, fontWeight: 800 }}>
             <Icon d={P.shield} size={18} color={opp.state !== "none" ? C.goldLt : C.ink} />
-            {opp.state === "advise" ? "換匯守衛：偵測到甜蜜點！" : "DAWHO 換匯守衛 · 監控中"}
+            {!configured ? "尚未設定 · 點我設定換匯守衛" : opp.state === "advise" ? "換匯守衛：偵測到甜蜜點！" : "DAWHO 換匯守衛 · 監控中"}
             {opp.state !== "none" && <span style={{ width: 8, height: 8, borderRadius: 4, background: C.green, animation: "pulse 1.6s infinite" }} />}
           </span>
-          <span style={{ color: opp.state !== "none" ? C.goldLt : C.ink, fontSize: 14, fontWeight: 700 }}>查看 ›</span>
+          <span style={{ color: opp.state !== "none" ? C.goldLt : C.ink, fontSize: 14, fontWeight: 700 }}>{configured ? "查看 ›" : "設定 ›"}</span>
         </button>
 
         {/* rate cards */}
