@@ -4,6 +4,14 @@
   padding: 0;
 }
 
+html, body {
+  height: 100%;
+  /* No page-level scroll — only .screen (inside the phone) scrolls. This also
+     stops the outer flex-centered layout from shifting off-center whenever
+     the body's own scrollbar would otherwise pop in/out. */
+  overflow: hidden;
+}
+
 body {
   background: #0a0e16;
 }
@@ -20,13 +28,14 @@ body {
   }
 }
 
-/* thin scrollbars inside the phone */
-::-webkit-scrollbar {
-  width: 5px;
+/* Scrolling stays fully functional everywhere (touch/wheel/keyboard) —
+   just no visible scrollbar rail. */
+* {
+  scrollbar-width: none; /* Firefox */
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 3px;
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 /* Below this width there's no room for the phone mockup (390px) beside the
