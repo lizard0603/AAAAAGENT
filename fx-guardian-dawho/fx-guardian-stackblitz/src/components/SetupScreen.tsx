@@ -12,7 +12,7 @@ const fmt = (n: number, d = 0) => n.toLocaleString("zh-TW", { minimumFractionDig
 const MODE_HINT: Record<1 | 2 | 3, string> = {
   1: "只填了目標匯率：達到（或優於）這個價位，換匯守衛將授權即執行。",
   2: "只填了時間區間：這段期間內由 AI 擇相對低點主動建議；到期仍未換，將以當日匯率保證完成。",
-  3: "同時填了目標匯率與時間區間：達門檻但區間未到期時，AI 只會示警建議，是否鎖定由您決定；到期保證完成。",
+  3: "您同時設定了目標匯率與時間區間：\n\n1. 匯率達目標門檻，或達換匯守衛預估的相對低點時，換匯守衛會示警提醒，是否鎖定換匯由您一鍵決定。\n2. 區間到期會通知您是否依即期匯率一鍵授權換匯。",
 };
 
 export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSave: (order: FxOrder) => void; go: (s: string) => void; prefill?: TravelFxHandoff | null }) {
@@ -223,7 +223,7 @@ export function SetupScreen({ db, onSave, go, prefill }: { db: FxDatabase; onSav
           <div style={{ fontSize: 12.5, fontWeight: 800, color: C.goldDeep, marginBottom: 4 }}>
             {mode === 1 ? "到價自動換" : mode === 2 ? "區間找低點" : "智能提醒"}
           </div>
-          <div style={{ fontSize: 12, color: "#6a5a30", lineHeight: 1.6 }}>{MODE_HINT[mode]}</div>
+          <div style={{ fontSize: 12, color: "#6a5a30", lineHeight: 1.6, whiteSpace: "pre-line" }}>{MODE_HINT[mode]}</div>
         </div>
       )}
 
