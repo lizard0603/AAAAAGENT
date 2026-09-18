@@ -34,7 +34,7 @@ type S = Record<string, CSSProperties>;
 export const styles: S = {
   viewport: {
     minHeight: "100vh",
-    background: "#FFFFFF",
+    background: "#0d0d0f",
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
     padding: "20px 12px",
     fontFamily: "'Noto Sans TC','PingFang TC',system-ui,sans-serif",
